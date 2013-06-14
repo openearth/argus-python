@@ -1,5 +1,6 @@
 import re
 import datetime
+import pytz
 
 argusname = re.compile(
     r'(?P<timestamp>\d+)' # timestamp
@@ -22,13 +23,12 @@ argusname = re.compile(
     r'\.'                 
     r'(?P<station>\w+)'   # station
     r'\.'                 
-    r'(?P<camera>c[\dx]+)'# camera
+    r'c(?P<camera>[\dx]+)'# camera
     r'\.'                 
     r'(?P<imgtype>\w+)'   # image type
     r'(\.product_(?P<product>\d+))?' # [optional] product
     r'\.'                 
     r'(?P<extension>\w+)' # extension
-    r'$'
     )
     
 def url2filename(url):
@@ -65,9 +65,9 @@ def filename2datetime(filename):
     if m == None:
         return None
     else:
-        return fileparts2datetime(**{k:v for k,v in m.iteritems() if k in ['year','month','day','hour','minute','second']})
+        return fileparts2datetime(**{k:v for k,v in m.iteritems() if k in ['year','month','day','hour','minute','second', 'tz']})
         
-def fileparts2datetime(year=None, month=None, day=None, hour=None, minute=None, second=None, series=None):
+def fileparts2datetime(year=None, month=None, day=None, hour=None, minute=None, second=None, tz=None, series=None):
 
     kwarg  = locals()
     kwargs = kwarg.copy()
@@ -109,11 +109,21 @@ def fileparts2datetime(year=None, month=None, day=None, hour=None, minute=None, 
                     kwargs['minute'] = oDate.minute
                 except:
                     pass
+            elif k == 'tz':
+                pass
             else:
                 kwargs[k] = int(v)
 
     if hasDate and hasTime:
-        return datetime.datetime(**{k:v for k,v in kwargs.iteritems() if k not in ('series')})
+        dt = datetime.datetime(**{k:v for k,v in kwargs.iteritems() if k not in ('series', 'tz')})
+        
+        # make timezone aware and convert to UTC
+        if not tz is None:
+            tz = pytz.timezone(tz)
+            dt = tz.localize(dt)
+            dt = dt.astimezone(pytz.utc)
+            
+        return dt
     elif hasDate:
         return datetime.date(**{k:v for k,v in kwargs.iteritems() if k in dateKeys})
     elif hasTime:
