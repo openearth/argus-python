@@ -39,7 +39,15 @@ def url2filename(url):
         return None
     else:
         return m.group()
-    
+
+def filename2url(filename):
+    m = filename2fileparts(filename)
+    d = filename2datetime(filename)
+    url = 'http://argus-data.deltares.nl/sites/%s/%s/c%s/%03d_%s.%s/%s' % (
+        m['station'],m['year'],m['camera'],int(d.strftime('%j')),m['month'],m['day'],
+        filename)
+    return url
+
 def filename2dayfile(filename):
 
     m = filename2fileparts(filename)
@@ -130,7 +138,7 @@ def fileparts2datetime(year=None, month=None, day=None, hour=None, minute=None, 
         return datetime.time(**{k:v for k,v in kwargs.iteritems() if k in timeKeys})
     else:
         return None
-    
+
 def datetime2regex(oDate):
 
     if type(oDate) is datetime.time:

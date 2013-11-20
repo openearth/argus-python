@@ -66,17 +66,17 @@ def average_colors(img, img_superpix):
 
     return img_avg
   
-def plot(img, img_superpix, mark_boundaries=True, shuffle=False, average_colors=False, slice=1):
+def plot(img, img_superpix, mark_boundaries=True, shuffle=False, average=False, slice=1):
 
     if mark_boundaries:
         boundaries = skimage.segmentation.find_boundaries(img_superpix)
 
     # shuffle pixels  
-    if shuffle and not average_colors:
+    if shuffle and not average:
         img_superpix = shuffle_pixels(img_superpix)
 
     # average colors per superpixel    
-    if average_colors:
+    if average:
         img_superpix = average_colors(img, img_superpix)
 
     # mark boundaries of superpixels        

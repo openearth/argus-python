@@ -13,14 +13,14 @@ def plot_image(img, cmap='Set2', dpi=96, slice=0, transparent=True):
     start_time = time.time()
     
     if slice > 0:
-        img = img[::slice,::slice,:] 
+        img = img[::slice,::slice] 
 
     i = float(img.shape[1] + 44)/dpi # correct for "invisible" tick label space
     j = float(img.shape[0] + 17)/dpi
 
     fig, ax = plt.subplots(figsize=(i,j))
 
-    ax.imshow(img, origin='bottom', aspect='normal', cmap=cmap)
+    ax.imshow(img, aspect='normal', cmap=cmap)
     ax.set_axis_off()
 
     plt.subplots_adjust(left=0., right=1., top=1., bottom=0.)
