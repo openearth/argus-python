@@ -79,6 +79,21 @@ def get_random_image(stations):
     
     return [image]
     
+def get_station_cameras(station,year):
+    
+    url = filesys.url.overview_year_url(station,year)
+    content = filesys.url.read_url_contents(url)
+    
+    regexp = re.compile('Cam\s+\d')
+    cameras = regexp.findall(content)
+    
+    for i in range(len(cameras)):
+        cameras[i] = re.sub('\D','',cameras[i])
+    
+    cameras = list(np.unique(cameras))
+    
+    return cameras
+    
 def parse_station_year(station, year):
     'Parse a HTML year overview and return sorted list of timestamps'
     
