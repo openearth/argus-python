@@ -3,6 +3,7 @@ import skimage.segmentation
 from skimage.util import img_as_float
 import numpy as np
 import pandas
+import cv2
 
 from argus2 import image
 
@@ -112,3 +113,27 @@ def mark(img_superpix, cat=1):
     img = np.concatenate((img_ones,img,img,img_alpha),axis=2);
     
     return image.plot.plot_image(img, transparent=True)
+
+def get_superpixel_grid(segments, img_shape):
+    '''Return shape of superpixels grid'''
+    
+    K = segments.max()
+    height, width = img_shape
+    superpixelsize = width * height / float(K);
+    step = np.sqrt(superpixelsize)
+    nx = int(round(width / step))
+    ny = int(round(height / step))
+
+#    assert(np.max(segments) == nx*ny - 1)
+    
+    return (ny,nx)
+
+def get_contours(segments):
+    '''Return contours of superpixels'''
+
+    contours = []
+    for i in range(np.max(segments)+1):
+        c, h = cv2.findContours((segments==i).astype(np.uint8),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
+        contours.append([i.tolist() for i in c])
+
+    return contours
