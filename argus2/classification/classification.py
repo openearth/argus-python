@@ -125,30 +125,34 @@ def comp_features(data,segments):
     
     return features
 
-def train_classification(features,classes,segments):
+def train_classification(features,classes,segments,catlist=[]):
     
-    cats = np.unique(classes)
+    if len(features) != len(classes) | len(features) != len(segments):
+        raise Exception("Input arguments should be lists of equal length.")
+        
+    X = []
+    Y = []
     
-    shp = getSuperpixelGrid(segments)
-    catlabels = np.empty((np.prod(shp),1), dtype='int')
-    for i in range(len(catlabels)):
-        catlabels[i] = [j for j, x in enumerate(cats) if classes[i] == x]        
-    catlabels = catlabels.ravel()
-    
-    X = features
-    X = X.reshape((shp[0],shp[1],X.shape[-1]))
-    X = X[:,:,np.newaxis,:]
-    
-    Y = catlabels
-    Y = Y.reshape(shp)
-    Y = Y[:,:,np.newaxis]
-    
-    #C = 3
-    #Y[Y!=C]=0
-    #Y[Y==C]=1
-    
-    model = models.GridCRF(n_states=np.size(cats),
-                           n_features=features.shape[1])
+    if catlist == []:
+        for i in range(len(classes)):
+            catlist.extend([x for x in np.unique(classes[i]) if x not in catlist])
+            
+    for k in range(len(features)):
+        shp = getSuperpixelGrid(segments[k])
+        catlabels = np.empty((np.prod(shp),1), dtype='int')
+        for i in range(len(catlabels)):
+            catlabels[i] = [j for j, x in enumerate(catlist) if classes[k][i] == x]        
+        catlabels = catlabels.ravel()
+
+        X.append(features[k])
+        X[k] = X[k].reshape((shp[0],shp[1],X[k].shape[-1]))
+        X[k] = X[k][:,:,:]
+
+        Y.append(catlabels)
+        Y[k] = Y[k].reshape(shp)
+   
+    model = models.GridCRF(n_states=len(catlist),
+                           n_features=features[0].shape[1])
     
     ssvm = learners.OneSlackSSVM(model, 
                                  verbose=0, 
