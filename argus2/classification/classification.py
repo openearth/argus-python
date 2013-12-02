@@ -125,18 +125,27 @@ def comp_features(data,segments):
     
     return features
 
-def train_classification(features,classes,segments,catlist=[]):
+def train_classification(features,classes,segments,catlist=[],warm_start=False,ssvm=None):
     
     if len(features) != len(classes) | len(features) != len(segments):
         raise Exception("Input arguments should be lists of equal length.")
-        
+    
+    if warm_start & not ssvm:
+        raise Exception("SSVM should be defined when warm-starting.")
+    
     X = []
     Y = []
     
+    catlist_t = []
+    for i in range(len(classes)):
+        catlist_t.extend([x for x in np.unique(classes[i]) if x not in catlist])
+    
     if catlist == []:
-        for i in range(len(classes)):
-            catlist.extend([x for x in np.unique(classes[i]) if x not in catlist])
-            
+        catlist = catlist_t
+    else:
+        if any([x not in catlist for x in catlist_t]):
+            raise Exception("Unknown category found.")
+    
     for k in range(len(features)):
         shp = getSuperpixelGrid(segments[k])
         catlabels = np.empty((np.prod(shp),1), dtype='int')
@@ -151,14 +160,13 @@ def train_classification(features,classes,segments,catlist=[]):
         Y.append(catlabels)
         Y[k] = Y[k].reshape(shp)
    
-    model = models.GridCRF(n_states=len(catlist),
-                           n_features=features[0].shape[1])
-    
-    ssvm = learners.OneSlackSSVM(model, 
-                                 verbose=0, 
-                                 max_iter=10000)
-        
-    ssvm.fit(X, Y)
+    if not warm_start:
+        model = models.GridCRF(n_states=len(catlist),n_features=features[0].shape[1])
+        ssvm = learners.OneSlackSSVM(model, verbose=0, max_iter=10000)
+        ssvm.fit(X, Y)
+    else:
+        ssvm.fit(X, Y,warm_start = True)
+
     
     return ssvm, X, Y
 
