@@ -4,54 +4,53 @@ import skimage.measure
 import skimage.feature
 #import matplotlib.pyplot as plt
 from pystruct import models, learners
+from argus2 import segmentation
 
-def comp_features(data,segments):
+pixelprops = {'area',
+              'coords',
+              'convex_area',
+              'centroid',
+              'equivalent_diameter',
+              'perimeter',
+              'moments_central',
+              'solidity',
+              'euler_number',
+              'extent',
+              'moments_normalized',
+              'eccentricity',
+              'convex_image',
+              'label',
+              'filled_image',
+              'orientation',
+              'major_axis_length',
+              'moments',
+              'image',
+              'filled_area',
+              'bbox',
+              'minor_axis_length',
+              'moments_hu'}
+intensityprops = {'label', 
+                  'max_intensity',
+                  'mean_intensity',
+                  'min_intensity',
+                  'weighted_moments_central',
+                  'weighted_centroid',
+                  'weighted_moments_normalized',
+                  'weighted_moments_hu',
+                  'weighted_moments'}
 
-    pixelprops = {
-                 'area',
-                 'coords',
-                 'convex_area',
-                 'centroid',
-                 'equivalent_diameter',
-                 'perimeter',
-                 'moments_central',
-                 'solidity',
-                 'euler_number',
-                 'extent',
-                 'moments_normalized',
-                 'eccentricity',
-                 'convex_image',
-                 'label',
-                 'filled_image',
-                 'orientation',
-                 'major_axis_length',
-                 'moments',
-                 'image',
-                 'filled_area',
-                 'bbox',
-                 'minor_axis_length',
-                 'moments_hu'}
-    intensityprops = {
-                     'label', 
-                     'max_intensity',
-                     'mean_intensity',
-                     'min_intensity',
-                     'weighted_moments_central',
-                     'weighted_centroid',
-                     'weighted_moments_normalized',
-                     'weighted_moments_hu',
-                     'weighted_moments'}
-    
+def extract_features(data,segments):
+
     # built-in pixel features
     regionprops = skimage.measure.regionprops(segments+1, intensity_image=data.mean(-1))
-    features    = [{key:feature[key] for key in pixelprops} for feature in regionprops] # if feature._slice is not None]
+    features    = [{key:feature[key] for key in pixelprops} for feature in regionprops if feature._slice is not None]
     
     # built-in intensity features
     df = pandas.DataFrame(features)
     df = df.set_index('label')
     for channel in range(data.shape[-1]):
         regionprops = skimage.measure.regionprops(segments+1, intensity_image=data[...,channel])
-        features    = [{key:feature[key] for key in intensityprops} for feature in regionprops] # if feature._slice is not None]
+        features    = [{key:feature[key] for key in intensityprops} for feature in regionprops if feature._slice is not None]
         df_channel  = pandas.DataFrame(features)
         df_channel  = df_channel.set_index('label')
         df          = pandas.merge(df, 
@@ -111,66 +110,56 @@ def comp_features(data,segments):
             
         features.append(feature)
     
-    df = pandas.DataFrame(features)
-    df = df.set_index('label')
-    
-    # Keep this or make loop to reshape matrix features?
-    keys     = features[0].keys()
-    selected = [len(np.asarray(feature).shape) == 0 for feature in features[0].values()]
-    props0d  = sorted(set(np.array(keys)[np.array(selected)]) - {'label'} )
-    features = np.empty((segments.max()+1, len(props0d)))
-
-    for idx, (prop) in enumerate(props0d):
-        features[:,idx] = np.asarray([df[prop].get(i) for i in range(1,segments.max()+2)], dtype='float')
-    
     return features
 
-def train_classification(features,classes,segments,catlist=[],warm_start=False,ssvm=None):
+def get_0d_features(features):
+
+    # Keep this or make loop to reshape matrix features?
+    keys         = features[0].keys()
+    n_segments   = len(features)
+    selected     = [len(np.asarray(feature).shape) == 0 for feature in features[0].values()]
+    props0d      = sorted(set(np.array(keys)[np.array(selected)]) - {'label'} )
+    feature_list = np.empty((n_segments, len(props0d)))
+
+    for idx, (prop) in enumerate(props0d):
+        feature_list[:,idx] = np.asarray([features[i][prop] for i in range(n_segments)], dtype='float')
+    
+    return feature_list
+
+def train_classification(features,classes,segments,ssvm=None):
     
     if len(features) != len(classes) or len(features) != len(segments):
         raise Exception("Input arguments should be lists of equal length.")
-    
-    if warm_start and not ssvm:
-        raise Exception("SSVM should be defined when warm-starting.")
-    
-    nfeat=features[0].shape[1]
+
+    X = []
     Y = []
     
-    catlist_t = []
-    for i in range(len(classes)):
-        catlist_t.extend([x for x in np.unique(classes[i]) if x not in catlist])
-    catlist_t = np.unique(catlist_t)
-    
-    if catlist == []:
-        catlist = catlist_t
-    else:
-        if any([x not in catlist for x in catlist_t]):
-            raise Exception("Unknown category found.")
-    
+    catlist = get_category_list(classes)
+
     for k in range(len(features)):
-        shp = getSuperpixelGrid(segments[k])
-        catlabels = np.empty((np.prod(shp),1), dtype='int')
-        for i in range(len(catlabels)):
+        feature_array = get_0d_features(features[k])
+        n_segments = np.prod(feature_array[1:2])
+        n_features = feature_array.shape[-1]
+
+        catlabels = np.empty((n_segments,1), dtype='int')
+        for i in range(n_segments):
             catlabels[i] = [j for j, x in enumerate(catlist) if classes[k][i] == x]        
         catlabels = catlabels.ravel()
     
-        features[k] = features[k].reshape((shp[0],shp[1],features[k].shape[-1]))
-        features[k] = features[k][:,:,:]
-        
-        X = features
+        shp = segmentation.superpixel.get_superpixel_grid(segments[k], segments[k].shape)
 
-        Y.append(catlabels)
-        Y[k] = Y[k].reshape(shp)
+        X.append(feature_array.reshape((shp[0],shp[1],-1)))
+        Y.append(catlabels.reshape(shp))
    
-    if not warm_start:
-        model = models.GridCRF(n_states=len(catlist),n_features=nfeat)
+    if ssvm == None:
+        model = models.GridCRF(n_states=len(catlist),n_features=n_features)
         ssvm = learners.OneSlackSSVM(model, verbose=0, max_iter=10000)
         ssvm.fit(X, Y)
     else:
-        ssvm.fit(X, Y,warm_start = True)
+        ssvm.fit(X, Y, warm_start=True)
 
     
-    return ssvm, X, Y
+    return ssvm, catlist
 
 def predict_classification(ssvm,data,segments,X):
 
@@ -182,16 +171,10 @@ def predict_classification(ssvm,data,segments,X):
     
     return img_classified
     
-def getSuperpixelGrid(segments):
-    '''Return shape of superpixels grid'''
-    
-    K = segments.max()
-    height, width = segments.shape
-    superpixelsize = width * height / float(K);
-    step = np.sqrt(superpixelsize)
-    nx = int(round(width / step))
-    ny = int(round(height / step))
-
-    assert(np.max(segments) == nx*ny - 1)
-    
-    return (ny,nx)
+def get_category_list(classes):
+    catlist = []
+    for lst in classes:
+        if not lst == None:
+            catlist.extend(np.unique(lst))
+    catlist = np.unique(catlist)
+    return [x for x in catlist if not x == None]
