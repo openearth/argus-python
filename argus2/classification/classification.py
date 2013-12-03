@@ -138,8 +138,7 @@ def train_classification(features,classes,segments,ssvm=None):
 
     for k in range(len(features)):
         feature_array = get_0d_features(features[k])
-        n_segments = np.prod(feature_array[1:2])
-        n_features = feature_array.shape[-1]
+        n_segments, n_features = feature_array.shape
 
         catlabels = np.empty((n_segments,1), dtype='int')
         for i in range(n_segments):
