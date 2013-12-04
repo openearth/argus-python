@@ -1,8 +1,39 @@
-1.	Snelheid van feature extraction en fit testen op megatron
-2.	Hotstart testen
-3.	Presentatie maken
-4.	Trainingsset voor meeting voorbereiden
-5.	Literatuurmapje (aangemaakt op dropbox) vullen
-6.	CRF visualiseren met methods van het SSVM object
-7.	Dataset splitsen in train/test en scores berekenen (bij voldoende data)
-8.	Bug fixen waarbij segmentatie niet leidt tot een grid (n_segments != nx * ny), ook al geconstateerd door Fedor
+- Snelheid van feature extraction en fit testen op megatron
+
+- Hotstart fit fixen
+
+  Bij hotstart moet nog de oorspronkelijke catlist uitgelezen en aangevuld worden in argusgui/classification.py
+
+- Presentatie maken
+
+- Trainingsset voor meeting voorbereiden
+
+- Literatuurmapje (aangemaakt op dropbox) vullen
+
+- CRF visualiseren met methods van het SSVM object, inclusief pairwise potentials
+
+- Dataset splitsen in train/test en scores berekenen (bij voldoende data)
+
+- Bug fixen waarbij segmentatie niet leidt tot een grid (n_segments != nx * ny), ook al geconstateerd door Fedor
+
+  Op dit moment wordt een foto overgeslagen als deze bug optreedt.
+  Meest voor de hand liggende oplossing is om een dummy node in het grid te maken met alle features 0 en een eigen dummy class
+
+- drawSuperpixelRaster veilig maken voor ontbrekende superpixels (d= error)
+
+- Convergence check toevoegen aan train functie
+
+  Bij geen convergence error teruggeven
+
+- Error handling vanuit subprocessen
+
+  Errors uit een subprocess moeten teruggeleid worden naar de GUI
+
+- HSV en LAB features toevoegen
+
+- Re-feature functie klussen
+
+- Fill superpixel bug fixen
+
+  Soms worden de superpixels in de GUI niet goed ingekleurd. Kleuren zijn dan 1 pixel verschoven tov raster.
+  Mogelijk heeft dit te maken met ontbrekende superpixels.

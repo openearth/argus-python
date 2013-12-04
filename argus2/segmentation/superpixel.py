@@ -63,7 +63,7 @@ def average_colors(img, img_superpix):
     for j in range(len(df_meaned)):
         img_avg[cat['cat'] == j,:] = df_meaned[j,:]
 
-    img_avg    = img_avg.round().astype('uint8').reshape(img.shape)
+    img_avg    = img_avg.reshape(img.shape)
 
     return img_avg
   
