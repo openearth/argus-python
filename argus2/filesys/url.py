@@ -20,7 +20,7 @@ def overview_day_url(station, oDate, type='snap'):
         
 def image_url(station, year, url):
 
-    return '/'.join((localHost, station, year, url))
+    return '/'.join((remoteHost, station, year, url))
     
 def local2remote(url):
 
@@ -42,12 +42,25 @@ def extract_image_urls(url, oDate=None):
         return urls
     else:
         return []
-  
+
 def read_url_contents(url):
     'Read entire contents of URL'
-
+    
+    regex = re.compile('[Zz]andmotor?')
+    if regex.search(url):
+        url = get_auth_zm(url)
+    
     try:
         urlobj = urllib2.urlopen(url)
         return urlobj.read()
     except:
         return None
+        
+def get_auth_zm(url):
+    
+    req = urllib2.Request(url)
+    unpw = 'emFtbzpkZWxmbGFuZHNla3VzdA=='
+    authheader =  "Basic %s" % unpw
+    req.add_header("Authorization", authheader)
+    
+    return req

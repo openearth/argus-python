@@ -1,0 +1,8 @@
+1.	Snelheid van feature extraction en fit testen op megatron
+2.	Hotstart testen
+3.	Presentatie maken
+4.	Trainingsset voor meeting voorbereiden
+5.	Literatuurmapje (aangemaakt op dropbox) vullen
+6.	CRF visualiseren met methods van het SSVM object
+7.	Dataset splitsen in train/test en scores berekenen (bij voldoende data)
+8.	Bug fixen waarbij segmentatie niet leidt tot een grid (n_segments != nx * ny), ook al geconstateerd door Fedor
