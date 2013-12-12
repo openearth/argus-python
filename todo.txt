@@ -41,4 +41,8 @@
 - Matrix-features ombouwen naar individuele features
 
   Worden momenteel genegeerd
+  
+- Relative Location Prior inbouwen
+
+  Zie Gould et al. (2008)
 
