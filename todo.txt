@@ -37,3 +37,8 @@
 
   Soms worden de superpixels in de GUI niet goed ingekleurd. Kleuren zijn dan 1 pixel verschoven tov raster.
   Mogelijk heeft dit te maken met ontbrekende superpixels.
+
+- Matrix-features ombouwen naar individuele features
+
+  Worden momenteel genegeerd
+
