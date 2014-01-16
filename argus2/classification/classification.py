@@ -43,23 +43,22 @@ def extract_features(data,segments):
 
     # built-in pixel features
     regionprops = skimage.measure.regionprops(segments+1, intensity_image=data.mean(-1))
-    features    = [{key:feature[key] for key in pixelprops} for feature in regionprops if feature._slice is not None]
+    features    = [{key:feature[key] for key in pixelprops} for feature in regionprops]# if feature._slice is not None]
     
     # built-in intensity features
     df = pandas.DataFrame(features)
     df = df.set_index('label')
     for channel in range(data.shape[-1]):
         regionprops = skimage.measure.regionprops(segments+1, intensity_image=data[...,channel])
-        features    = [{key:feature[key] for key in intensityprops} for feature in regionprops if feature._slice is not None]
+        features    = [{'%s.%d' %(key,channel):feature[key] for key in intensityprops} for feature in regionprops]# if feature._slice is not None]
         df_channel  = pandas.DataFrame(features)
-        df_channel  = df_channel.set_index('label')
+        df_channel  = df_channel.set_index('label.%d' %(channel))
         df          = pandas.merge(df, 
                                    df_channel, 
                                    how='outer', 
                                    left_index=True, 
-                                   right_index=True, 
-                                   suffixes=('.%d' % (channel-1,), '.%d' % channel))
-                                   
+                                   right_index=True)
+                               
     # Custom features
     features = []
     for i, row in df.iterrows():
@@ -96,7 +95,7 @@ def extract_features(data,segments):
         for channel in range(n_channels):
             # N based sampel var
             feature["variance_intensity.%d" % channel] = (feature['image_masked'][...,channel]).var()
-        for channel in range(n_channels-1):
+        for channel in range(n_channels):
             feature["mean_relative_intensity.%d" % channel] = (feature['image_masked'][...,channel].astype('float')/feature['image_masked'].sum(-1)).mean()
             feature["variance_relative_intensity.%d" % channel] = (feature['image_masked'][...,channel].astype('float')/feature['image_masked'].sum(-1)).var()
         for channel in range(n_channels):
@@ -112,14 +111,19 @@ def extract_features(data,segments):
     
     return features
 
-def get_0d_features(features):
+def make_features_0d(features):
 
-    # Keep this or make loop to reshape matrix features?
     keys         = features[0].keys()
     n_segments   = len(features)
-    selected     = [len(np.asarray(feature).shape) == 0 for feature in features[0].values()]
-    props0d      = sorted(set(np.array(keys)[np.array(selected)]) - {'label'} )
-    feature_list = np.empty((n_segments, len(props0d)))
+    featdims     = [len(np.asarray(feature).shape) for feature in features[0].values()]
+    #props0d      = sorted(set(np.array(keys)[np.array(selected)]) - {'label'} )
+    feature_list = np.empty(n_segments, np.asarray(featdims).sum())
+
+    i3 = 0
+    for i1, (prop) in enumerate(keys):
+        for i2 in range(featdims[i1]):
+            feature_list[:,i3] = np.asarray([])
+            i3 = i3 + 1
 
     for idx, (prop) in enumerate(props0d):
         feature_list[:,idx] = np.asarray([features[i][prop] for i in range(n_segments)], dtype='float')
@@ -137,7 +141,7 @@ def train_classification(features,classes,segments,ssvm=None):
     catlist = get_category_list(classes)
 
     for k in range(len(features)):
-        feature_array = get_0d_features(features[k])
+        feature_array = make_features_0d(features[k])
         n_segments, n_features = feature_array.shape
 
         catlabels = np.empty((n_segments,1), dtype='int')
