@@ -115,20 +115,31 @@ def make_features_0d(features):
 
     keys         = features[0].keys()
     n_segments   = len(features)
-    featdims     = [len(np.asarray(feature).shape) for feature in features[0].values()]
-    #props0d      = sorted(set(np.array(keys)[np.array(selected)]) - {'label'} )
-    feature_list = np.empty(n_segments, np.asarray(featdims).sum())
-
-    i3 = 0
-    for i1, (prop) in enumerate(keys):
-        for i2 in range(featdims[i1]):
-            feature_list[:,i3] = np.asarray([])
-            i3 = i3 + 1
-
-    for idx, (prop) in enumerate(props0d):
-        feature_list[:,idx] = np.asarray([features[i][prop] for i in range(n_segments)], dtype='float')
+    n_values = np.empty(len(keys))
+    featdim = []
+    for i, (prop) in enumerate(keys):
+        featdim.append(np.asarray(features[0][prop]).shape)
+        if featdim[i]:
+            n_values[i] = np.prod(featdim[i])
+        else:
+            n_values[i] = 1
     
-    return feature_list
+    feature_list = np.empty(n_segments,n_values.sum())
+    featinds = n_values.cumsum()
+    keys_0d = []
+    
+    for idx, (prop) in enumerate(keys):
+        feature_list[:,featinds[idx]:featinds[idx+1]] = np.asarray([np.asarray(features[i][prop]).ravel() for i in range(n_segments)], dtype='float')
+        if featdim[idx] == 1:
+            keys_0d.extend(keys[idx])
+        elif len(featdim[idx]) == 1:
+            keys_0d.extend([keys[idx] + '_' + str(elem) for elem in range(featdim[idx][0])])
+        elif len(featdim[idx]) == 2:
+            keys_0d.extend([[keys[idx] + '_' + str(row) + '.' + str(col) for col in range(featdim[idx][1])] for row in range(featdim[idx][0] if featdim[idx] ~= 1]))
+        elif len(featdim[idx]) == 3:
+            keys_0d.extend([[[keys[idx] + '_' + str(sl) + '.' + str(row) + '.' + str(col) for col in range(featdim[idx][2])] for row in range(featdim[idx][1])] for sl in range(featdim[idx][0])])
+    
+    return feature_list,keys_0d
 
 def train_classification(features,classes,segments,ssvm=None):
     
