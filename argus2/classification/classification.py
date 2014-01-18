@@ -1,5 +1,6 @@
 import numpy as np
 import pandas
+import marshal
 import skimage.measure
 import skimage.feature
 #import matplotlib.pyplot as plt
@@ -140,6 +141,41 @@ def make_features_0d(features):
             keys_0d.extend([[[keys[idx] + '_' + str(sl) + '.' + str(row) + '.' + str(col) for col in range(featdim[idx][2])] for row in range(featdim[idx][1])] for sl in range(featdim[idx][0])])
     
     return feature_list,keys_0d
+    
+def normalize_features(feature_files):
+    
+    fid = open(feature_files[0],'rb')
+    features = marshal.load(fid)
+    fid.close()
+    
+    image_stats = np.empty(len(feature_files),3,features.shape[1])
+    for i, file in enumerate(feature_files):
+        if i > 0:
+            fid = open(file,'rb')
+            features = marshal.load(fid)
+            fid.close()
+        
+        image_stats(i,1,:) = features.mean(axis = 0)
+        image_stats(i,2,:) = features.var(axis = 0)
+        image_stats(i,3,:) = features.shape[0]
+        
+    n_samp = image_stats[:,2,0].sum()
+    feature_stats = np.empty(features.shape[1],2)
+    
+    for i in range(features.shape[1]):
+        feature_stats[i,1] = np.sum(image_stats[:,1,i]*image_stats[:,3,i])/n_samp   # Combined mean
+        feature_stats[i,2] = np.sum(image_stats[:,3,i]*(image_stats[:,2,i] + (image_stats[:,1,i]-feature_stats[i,1])**2))/n_samp    # Combined variance, see http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
+        
+    for i, file in enumerate(feature_files):
+        fid = open(file,'rb')
+        features = marshal.load(fid)
+        fid.close()
+        features_normalized = np.divide(np.subtract(features - feature_stats[:,1].reshape(1,-1)),feature_stats[:,2].reshape(1,-1))  # Convert to standard normal distribution
+        fid = open(file[:-3] + '_normalized.msl','wb')
+        marshal.dump(features_normalized,fid)
+        fid.close()
+        
+return feature_stats
 
 def train_classification(features,classes,segments,ssvm=None):
     
