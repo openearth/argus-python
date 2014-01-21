@@ -1,6 +1,6 @@
 import numpy as np
 import pandas
-import marshal
+import cPickle as pickle
 import skimage.measure
 import skimage.feature
 #import matplotlib.pyplot as plt
@@ -76,7 +76,7 @@ def extract_features(data,segments):
         
         """Holeyness is defined as the convex area divided by the area"""
         feature["holeyness"] = feature["convex_area"]/feature["area"]
-        data_sp = data[segments==feature["label"]-1,:]
+        # data_sp = data[segments==feature["label"]-1,:]
         
         
         """Shape is represented by the ratio of the area to the perimeter squared"""
@@ -107,6 +107,12 @@ def extract_features(data,segments):
             greyprops = skimage.feature.greycomatrix(feature['image_masked'][...,channel], distances=[5,7,11], angles=np.linspace(0,1*np.pi,num=6, endpoint=False))
             for prop in {'contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM'}:
                 feature["grey_%s.%d" % (prop, channel)] = skimage.feature.greycoprops(greyprops)
+                
+        feature.pop('image_masked')
+        feature.pop('coords')
+        feature.pop('convex_image')
+        feature.pop('filled_image')
+        feature.pop('image')
             
         features.append(feature)
     
@@ -118,64 +124,74 @@ def make_features_0d(features):
     n_segments   = len(features)
     n_values = np.empty(len(keys))
     featdim = []
-    for i, (prop) in enumerate(keys):
+    for i, prop in enumerate(keys):
         featdim.append(np.asarray(features[0][prop]).shape)
         if featdim[i]:
             n_values[i] = np.prod(featdim[i])
         else:
             n_values[i] = 1
     
-    feature_list = np.empty(n_segments,n_values.sum())
+    feature_list = np.empty((n_segments,n_values.sum()))
     featinds = n_values.cumsum()
+    featinds = np.append(0,featinds)
     keys_0d = []
-    
-    for idx, (prop) in enumerate(keys):
-        feature_list[:,featinds[idx]:featinds[idx+1]] = np.asarray([np.asarray(features[i][prop]).ravel() for i in range(n_segments)], dtype='float')
-        if featdim[idx] == 1:
-            keys_0d.extend(keys[idx])
-        elif len(featdim[idx]) == 1:
-            keys_0d.extend([keys[idx] + '_' + str(elem) for elem in range(featdim[idx][0])])
-        elif len(featdim[idx]) == 2:
-            keys_0d.extend([[keys[idx] + '_' + str(row) + '.' + str(col) for col in range(featdim[idx][1])] for row in range(featdim[idx][0] if featdim[idx] ~= 1]))
-        elif len(featdim[idx]) == 3:
-            keys_0d.extend([[[keys[idx] + '_' + str(sl) + '.' + str(row) + '.' + str(col) for col in range(featdim[idx][2])] for row in range(featdim[idx][1])] for sl in range(featdim[idx][0])])
+       
+    for idx, prop in enumerate(keys):
+        try:
+            feature_list[:,featinds[idx]:featinds[idx+1]] = np.asarray([np.asarray(features[i][prop],dtype='float').ravel() for i in range(n_segments)])
+            if n_values[idx] == 1:
+                keys_0d.append(keys[idx])
+            elif len(featdim[idx]) == 1:
+                keys_0d.extend(keys[idx] + '_' + str(elem) for elem in range(featdim[idx][0]))
+            elif len(featdim[idx]) == 2:
+                keys_0d.extend(keys[idx] + '_' + str(row) + '.' + str(col) for col in range(featdim[idx][1]) for row in range(featdim[idx][0]) if featdim[idx] != 1)
+            elif len(featdim[idx]) == 3:
+                keys_0d.extend(keys[idx] + '_' + str(sl) + '.' + str(row) + '.' + str(col) for col in range(featdim[idx][2]) for row in range(featdim[idx][1]) for sl in range(featdim[idx][0]))
+        except:
+            print idx
     
     return feature_list,keys_0d
     
 def normalize_features(feature_files):
     
     fid = open(feature_files[0],'rb')
-    features = marshal.load(fid)
+    features = pickle.load(fid)
     fid.close()
     
-    image_stats = np.empty(len(feature_files),3,features.shape[1])
+    image_stats = np.empty((len(feature_files),6,features.shape[1]))
     for i, file in enumerate(feature_files):
         if i > 0:
             fid = open(file,'rb')
-            features = marshal.load(fid)
+            features = pickle.load(fid)
             fid.close()
         
-        image_stats(i,1,:) = features.mean(axis = 0)
-        image_stats(i,2,:) = features.var(axis = 0)
-        image_stats(i,3,:) = features.shape[0]
+        image_stats[i,0,:] = features.mean(axis = 0)
+        image_stats[i,1,:] = features.var(axis = 0)
+        image_stats[i,2,:] = features.shape[0]
+        image_stats[i,3,:] = np.nanmin(features,axis = 0)
+        image_stats[i,4,:] = np.nanmax(features,axis = 0)
+        image_stats[i,5,:] = np.sum(np.isnan(features),axis = 0)
         
     n_samp = image_stats[:,2,0].sum()
-    feature_stats = np.empty(features.shape[1],2)
+    feature_stats = np.empty((features.shape[1],5))
     
     for i in range(features.shape[1]):
-        feature_stats[i,1] = np.sum(image_stats[:,1,i]*image_stats[:,3,i])/n_samp   # Combined mean
-        feature_stats[i,2] = np.sum(image_stats[:,3,i]*(image_stats[:,2,i] + (image_stats[:,1,i]-feature_stats[i,1])**2))/n_samp    # Combined variance, see http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
+        feature_stats[i,0] = np.sum(image_stats[:,0,i]*image_stats[:,2,i])/n_samp   # Combined mean
+        feature_stats[i,1] = np.sum(image_stats[:,2,i]*(image_stats[:,1,i] + (image_stats[:,0,i]-feature_stats[i,0])**2))/n_samp    # Combined variance, see http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
+        feature_stats[i,2] = np.min(image_stats[:,3,i])
+        feature_stats[i,3] = np.max(image_stats[:,4,i])
+        feature_stats[i,4] = np.sum(image_stats[:,5,i])
         
     for i, file in enumerate(feature_files):
         fid = open(file,'rb')
-        features = marshal.load(fid)
+        features = pickle.load(fid)
         fid.close()
-        features_normalized = np.divide(np.subtract(features - feature_stats[:,1].reshape(1,-1)),feature_stats[:,2].reshape(1,-1))  # Convert to standard normal distribution
-        fid = open(file[:-3] + '_normalized.msl','wb')
-        marshal.dump(features_normalized,fid)
+        features_normalized = np.divide(np.subtract(features,feature_stats[:,0].reshape(1,-1)),np.sqrt(feature_stats[:,1].reshape(1,-1)))  # Convert to standard normal distribution: (x - mu)/sigma
+        fid = open(file[:-4] + '_normalized.pkl','wb')
+        pickle.dump(features_normalized,fid)
         fid.close()
         
-return feature_stats
+    return image_stats,feature_stats
 
 def train_classification(features,classes,segments,ssvm=None):
     
