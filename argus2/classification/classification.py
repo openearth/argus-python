@@ -107,7 +107,8 @@ def extract_features(data,segments):
             greyprops = skimage.feature.greycomatrix(feature['image_masked'][...,channel], distances=[5,7,11], angles=np.linspace(0,1*np.pi,num=6, endpoint=False))
             for prop in {'contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM'}:
                 feature["grey_%s.%d" % (prop, channel)] = skimage.feature.greycoprops(greyprops)
-                
+
+        # these features depend on superpixel size, so should be normalized. pop for now.
         feature.pop('image_masked')
         feature.pop('coords')
         feature.pop('convex_image')
@@ -119,6 +120,7 @@ def extract_features(data,segments):
     return features
 
 def make_features_0d(features):
+    '''make 0d feature from each item in matrix feature. also returns order of features in extra output.'''
 
     keys         = features[0].keys()
     n_segments   = len(features)
@@ -153,6 +155,7 @@ def make_features_0d(features):
     return feature_list,keys_0d
     
 def normalize_features(feature_files):
+    '''iterate over all feature files and convert to standard normal space. write to new pickle files.'''
     
     fid = open(feature_files[0],'rb')
     features = pickle.load(fid)
