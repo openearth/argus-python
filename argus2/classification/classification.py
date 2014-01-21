@@ -1,5 +1,6 @@
 import numpy as np
 import pandas
+import re
 import cPickle as pickle
 import skimage.measure
 import skimage.feature
@@ -51,58 +52,63 @@ def extract_features(data,segments):
     df = df.set_index('label')
     for channel in range(data.shape[-1]):
         regionprops = skimage.measure.regionprops(segments+1, intensity_image=data[...,channel])
-        features    = [{'%s.%d' %(key,channel):feature[key] for key in intensityprops} for feature in regionprops]# if feature._slice is not None]
+        features    = [{'%s.%d' % (key,channel):feature[key] for key in intensityprops} for feature in regionprops]# if feature._slice is not None]
         df_channel  = pandas.DataFrame(features)
-        df_channel  = df_channel.set_index('label.%d' %(channel))
+        df_channel  = df_channel.set_index('label.%d' % (channel))
         df          = pandas.merge(df, 
                                    df_channel, 
                                    how='outer', 
                                    left_index=True, 
                                    right_index=True)
                                
-    # Custom features
+    # custom features
     features = []
     for i, row in df.iterrows():
         
         feature = row.to_dict()
         feature['label'] = row.name
-        """Size is represented by the portion of the image covered by the region"""
+       
+        # size is represented by the portion of the image covered by the region
         feature['size'] = np.prod(segments.shape)/feature['area']
         
-        """Position is represented using the coordinates of the region center of mass normalized by the
-        image dimensions"""
+        # position is represented using the coordinates of the region center of mass normalized by the image dimensions
         feature["position.n"] = feature['centroid'][0]/segments.shape[0]
         feature["position.m"] = feature['centroid'][1]/segments.shape[1]
         
-        """Holeyness is defined as the convex area divided by the area"""
+        # holeyness is defined as the convex area divided by the area
         feature["holeyness"] = feature["convex_area"]/feature["area"]
-        # data_sp = data[segments==feature["label"]-1,:]
         
-        
-        """Shape is represented by the ratio of the area to the perimeter squared"""
+        # shape is represented by the ratio of the area to the perimeter squared
         # seems to be the same as solidity
         feature["shape"] = feature["area"]/(feature["perimeter"]**2)
     
-        """Color"""
+        # color
         n_channels = data.shape[2]
         minn, minm, maxn, maxm = feature['bbox']
-        # Select the pixels that are not in the image
-        mask= np.logical_not(feature['image'])[:,:,np.newaxis]
-        # Repeat along the channels
+
+        # select the pixels that are not in the image
+        mask = np.logical_not(feature['image'])[:,:,np.newaxis]
+
+        # repeat along the channels
         mask_channels = np.repeat(mask, repeats=n_channels, axis=2)
-        # Select the image pixels and apply the mask
+
+        # select the image pixels and apply the mask
         data_sp = np.ma.masked_array(data[minn:maxn, minm:maxm,:], mask=mask_channels)
-        feature['image_masked'] = data_sp 
+        feature['image_masked'] = data_sp
         for channel in range(n_channels):
-            # N based sampel var
+
+            # N based sample var
             feature["variance_intensity.%d" % channel] = (feature['image_masked'][...,channel]).var()
+
         for channel in range(n_channels):
             feature["mean_relative_intensity.%d" % channel] = (feature['image_masked'][...,channel].astype('float')/feature['image_masked'].sum(-1)).mean()
             feature["variance_relative_intensity.%d" % channel] = (feature['image_masked'][...,channel].astype('float')/feature['image_masked'].sum(-1)).var()
+
         for channel in range(n_channels):
             n = 5
             counts, bins = np.histogram(feature['image_masked'][...,channel], bins=np.linspace(0, 255, endpoint=True, num=n+1))
             feature["histogram.%d" % channel] = counts
+
         for channel in range(n_channels):
             greyprops = skimage.feature.greycomatrix(feature['image_masked'][...,channel], distances=[5,7,11], angles=np.linspace(0,1*np.pi,num=6, endpoint=False))
             for prop in {'contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM'}:
@@ -120,12 +126,14 @@ def extract_features(data,segments):
     return features
 
 def make_features_0d(features):
-    '''make 0d feature from each item in matrix feature. also returns order of features in extra output.'''
+    '''convert all items in each matrix feature into individual features'''
 
-    keys         = features[0].keys()
-    n_segments   = len(features)
+    # BAS: why not adhere to the dataframe approach, much simpler isn't it?
+    keys = features[0].keys()
+    n_segments = len(features)
     n_values = np.empty(len(keys))
     featdim = []
+
     for i, prop in enumerate(keys):
         featdim.append(np.asarray(features[0][prop]).shape)
         if featdim[i]:
@@ -140,7 +148,10 @@ def make_features_0d(features):
        
     for idx, prop in enumerate(keys):
         try:
-            feature_list[:,featinds[idx]:featinds[idx+1]] = np.asarray([np.asarray(features[i][prop],dtype='float').ravel() for i in range(n_segments)])
+            feature_list[:,featinds[idx]:featinds[idx+1]] = np.asarray(
+                [np.asarray(features[i][prop], dtype='float').ravel() for i in range(n_segments)])
+
+            # BAS: why not use ravel/flatten?
             if n_values[idx] == 1:
                 keys_0d.append(keys[idx])
             elif len(featdim[idx]) == 1:
@@ -157,17 +168,15 @@ def make_features_0d(features):
 def normalize_features(feature_files):
     '''iterate over all feature files and convert to standard normal space. write to new pickle files.'''
     
-    fid = open(feature_files[0],'rb')
-    features = pickle.load(fid)
-    fid.close()
-    
-    image_stats = np.empty((len(feature_files),6,features.shape[1]))
     for i, file in enumerate(feature_files):
-        if i > 0:
-            fid = open(file,'rb')
-            features = pickle.load(fid)
-            fid.close()
+        fid = open(file,'rb')
+        features = pickle.load(fid)
+        fid.close()
+
+        if i == 0:
+            image_stats = np.empty((len(feature_files),6,features.shape[1]))
         
+        # BAS: why not use a dataframe for clarity??
         image_stats[i,0,:] = features.mean(axis = 0)
         image_stats[i,1,:] = features.var(axis = 0)
         image_stats[i,2,:] = features.shape[0]
@@ -176,11 +185,18 @@ def normalize_features(feature_files):
         image_stats[i,5,:] = np.sum(np.isnan(features),axis = 0)
         
     n_samp = image_stats[:,2,0].sum()
+
+    # BAS: dataframe??
     feature_stats = np.empty((features.shape[1],5))
     
     for i in range(features.shape[1]):
-        feature_stats[i,0] = np.sum(image_stats[:,0,i]*image_stats[:,2,i])/n_samp   # Combined mean
-        feature_stats[i,1] = np.sum(image_stats[:,2,i]*(image_stats[:,1,i] + (image_stats[:,0,i]-feature_stats[i,0])**2))/n_samp    # Combined variance, see http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
+        
+        # combined mean
+        feature_stats[i,0] = np.sum(image_stats[:,0,i] * image_stats[:,2,i])/n_samp
+        
+        # combined variance, see http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
+        feature_stats[i,1] = np.sum(image_stats[:,2,i] * (image_stats[:,1,i] + (image_stats[:,0,i] - feature_stats[i,0])**2))/n_samp
+
         feature_stats[i,2] = np.min(image_stats[:,3,i])
         feature_stats[i,3] = np.max(image_stats[:,4,i])
         feature_stats[i,4] = np.sum(image_stats[:,5,i])
@@ -189,8 +205,17 @@ def normalize_features(feature_files):
         fid = open(file,'rb')
         features = pickle.load(fid)
         fid.close()
-        features_normalized = np.divide(np.subtract(features,feature_stats[:,0].reshape(1,-1)),np.sqrt(feature_stats[:,1].reshape(1,-1)))  # Convert to standard normal distribution: (x - mu)/sigma
-        fid = open(file[:-4] + '_normalized.pkl','wb')
+
+        # convert to standard normal distribution: (x - mu)/sigma
+        features_normalized = np.divide(
+            np.subtract(
+                features,
+                feature_stats[:,0].reshape(1,-1)),
+            np.sqrt(
+                feature_stats[:,1].reshape(1,-1)))
+
+        # dump to new pickle file
+        fid = open(re.sub('\..+$','_normalized\g<0>',file), 'wb')
         pickle.dump(features_normalized,fid)
         fid.close()
         
