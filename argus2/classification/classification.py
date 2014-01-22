@@ -54,7 +54,7 @@ def extract_features(data,segments):
         regionprops = skimage.measure.regionprops(segments+1, intensity_image=data[...,channel])
         features    = [{'%s.%d' % (key,channel):feature[key] for key in intensityprops} for feature in regionprops]# if feature._slice is not None]
         df_channel  = pandas.DataFrame(features)
-        df_channel  = df_channel.set_index('label.%d' % (channel))
+#        df_channel  = df_channel.set_index('label.%d' % (channel))
         df          = pandas.merge(df, 
                                    df_channel, 
                                    how='outer', 
@@ -128,98 +128,153 @@ def extract_features(data,segments):
 def make_features_0d(features):
     '''convert all items in each matrix feature into individual features'''
 
-    # BAS: why not adhere to the dataframe approach, much simpler isn't it?
-    keys = features[0].keys()
-    n_segments = len(features)
-    n_values = np.empty(len(keys))
-    featdim = []
+    features_lin = [{} for i in range(len(features))]
+    for i, feature in enumerate(features):
+        for name, value in feature.iteritems():
+            arr = np.asarray(value)
+            if np.prod(arr.shape) > 1:
+                for j, item in enumerate(arr.ravel()):
+                    features_lin[i]['%s.%d' % (name, j)] = item
+            else:
+                features_lin[i][name] = value
 
-    for i, prop in enumerate(keys):
-        featdim.append(np.asarray(features[0][prop]).shape)
-        if featdim[i]:
-            n_values[i] = np.prod(featdim[i])
-        else:
-            n_values[i] = 1
+    return features_lin
+                
+#    keys = features[0].keys()
+#    n_segments = len(features)
+#    n_values = np.empty(len(keys))
+#    featdim = []
+#
+#    for i, prop in enumerate(keys):
+#        featdim.append(np.asarray(features[0][prop]).shape)
+#        if featdim[i]:
+#            n_values[i] = np.prod(featdim[i])
+#        else:
+#            n_values[i] = 1
+#    
+#    feature_list = np.empty((n_segments,n_values.sum()))
+#    featinds = n_values.cumsum()
+#    featinds = np.append(0,featinds)
+#    keys_0d = []
+#       
+#    for idx, prop in enumerate(keys):
+#        try:
+#            feature_list[:,featinds[idx]:featinds[idx+1]] = np.asarray(
+#                [np.asarray(features[i][prop], dtype='float').ravel() for i in range(n_segments)])
+#
+#            # BAS: why not use ravel/flatten?
+#            if n_values[idx] == 1:
+#                keys_0d.append(keys[idx])
+#            elif len(featdim[idx]) == 1:
+#                keys_0d.extend(keys[idx] + '_' + str(elem) for elem in range(featdim[idx][0]))
+#            elif len(featdim[idx]) == 2:
+#                keys_0d.extend(keys[idx] + '_' + str(row) + '.' + str(col) for col in range(featdim[idx][1]) for row in range(featdim[idx][0]) if featdim[idx] != 1)
+#            elif len(featdim[idx]) == 3:
+#                keys_0d.extend(keys[idx] + '_' + str(sl) + '.' + str(row) + '.' + str(col) for col in range(featdim[idx][2]) for row in range(featdim[idx][1]) for sl in range(featdim[idx][0]))
+#        except:
+#            print idx
+#    
+#    return feature_list,keys_0d
     
-    feature_list = np.empty((n_segments,n_values.sum()))
-    featinds = n_values.cumsum()
-    featinds = np.append(0,featinds)
-    keys_0d = []
-       
-    for idx, prop in enumerate(keys):
-        try:
-            feature_list[:,featinds[idx]:featinds[idx+1]] = np.asarray(
-                [np.asarray(features[i][prop], dtype='float').ravel() for i in range(n_segments)])
+def get_feature_stats(feature_files):
+    '''extract feature statistics from feature files'''
 
-            # BAS: why not use ravel/flatten?
-            if n_values[idx] == 1:
-                keys_0d.append(keys[idx])
-            elif len(featdim[idx]) == 1:
-                keys_0d.extend(keys[idx] + '_' + str(elem) for elem in range(featdim[idx][0]))
-            elif len(featdim[idx]) == 2:
-                keys_0d.extend(keys[idx] + '_' + str(row) + '.' + str(col) for col in range(featdim[idx][1]) for row in range(featdim[idx][0]) if featdim[idx] != 1)
-            elif len(featdim[idx]) == 3:
-                keys_0d.extend(keys[idx] + '_' + str(sl) + '.' + str(row) + '.' + str(col) for col in range(featdim[idx][2]) for row in range(featdim[idx][1]) for sl in range(featdim[idx][0]))
-        except:
-            print idx
-    
-    return feature_list,keys_0d
-    
-def normalize_features(feature_files):
+    istat = []
+    for i, fname in enumerate(feature_files):
+
+        # open feature file
+        fp = open(fname,'rb')
+        features = pickle.load(fp)
+        fp.close()
+
+        df = pandas.DataFrame(features)
+        df = df.set_index('label')
+
+        # extract image statistics
+        istat.append(pandas.DataFrame({
+            'img':fname,
+            'avg':df.mean(),
+            'var':df.var(),
+            'min':df.min(),
+            'max':df.max(),
+            'sum':df.sum(),
+            'n':df.shape[0]}))
+
+    istat = pandas.concat(istat)
+    istat.index.name = 'feature'
+    istat = istat.set_index('img', append=True)
+
+    # number of items
+    ilen = istat['n'].sum(level='feature')
+
+    # combined weighed average
+    avg = (istat['avg'] * istat['n']).sum(level='feature') / ilen
+
+    # create repeated series of combined weighed average (FIXME)
+    avg_r = []
+    for fname in feature_files:
+        df = pandas.DataFrame({'avg':avg})
+        df['img'] = fname
+        avg_r.append(df)
+    avg_r = pandas.concat(avg_r)
+    avg_r = avg_r.set_index('img', append=True)
+
+    # combined weighed variance
+    var = (istat['n'] * (istat['var'] + (istat['avg'] - avg_r['avg'])**2)).sum(level='feature') / ilen
+
+    fstat = pandas.DataFrame({'avg':avg, 'var':var})
+    fstat['min'] = istat['min'].min(level='feature')
+    fstat['max'] = istat['max'].max(level='feature')
+    fstat['sum'] = istat['sum'].sum(level='feature')
+
+    return istat, fstat
+
+#        if i == 0:
+#            image_stats = np.empty((len(feature_files),6,features.shape[1]))
+#        
+#        # BAS: why not use a dataframe for clarity??
+#        image_stats[i,0,:] = features.mean(axis = 0)
+#        image_stats[i,1,:] = features.var(axis = 0)
+#        image_stats[i,2,:] = features.shape[0]
+#        image_stats[i,3,:] = np.nanmin(features,axis = 0)
+#        image_stats[i,4,:] = np.nanmax(features,axis = 0)
+#        image_stats[i,5,:] = np.sum(np.isnan(features),axis = 0)
+#        
+#    n_samp = image_stats[:,2,0].sum()
+#
+#    # BAS: dataframe??
+#    feature_stats = np.empty((features.shape[1],5))
+#    
+#    for i in range(features.shape[1]):
+#        
+#        # combined mean
+#        feature_stats[i,0] = np.sum(image_stats[:,0,i] * image_stats[:,2,i])/n_samp
+#        
+#        # combined variance, see http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
+#        feature_stats[i,1] = np.sum(image_stats[:,2,i] * (image_stats[:,1,i] + (image_stats[:,0,i] - feature_stats[i,0])**2))/n_samp
+#
+#        feature_stats[i,2] = np.min(image_stats[:,3,i])
+#        feature_stats[i,3] = np.max(image_stats[:,4,i])
+#        feature_stats[i,4] = np.sum(image_stats[:,5,i])
+        
+def normalize_features(feature_files, fstat):
     '''iterate over all feature files and convert to standard normal space. write to new pickle files.'''
-    
-    for i, file in enumerate(feature_files):
-        fid = open(file,'rb')
-        features = pickle.load(fid)
-        fid.close()
 
-        if i == 0:
-            image_stats = np.empty((len(feature_files),6,features.shape[1]))
-        
-        # BAS: why not use a dataframe for clarity??
-        image_stats[i,0,:] = features.mean(axis = 0)
-        image_stats[i,1,:] = features.var(axis = 0)
-        image_stats[i,2,:] = features.shape[0]
-        image_stats[i,3,:] = np.nanmin(features,axis = 0)
-        image_stats[i,4,:] = np.nanmax(features,axis = 0)
-        image_stats[i,5,:] = np.sum(np.isnan(features),axis = 0)
-        
-    n_samp = image_stats[:,2,0].sum()
+    for fname in feature_files:
 
-    # BAS: dataframe??
-    feature_stats = np.empty((features.shape[1],5))
-    
-    for i in range(features.shape[1]):
-        
-        # combined mean
-        feature_stats[i,0] = np.sum(image_stats[:,0,i] * image_stats[:,2,i])/n_samp
-        
-        # combined variance, see http://www.emathzone.com/tutorials/basic-statistics/combined-variance.html
-        feature_stats[i,1] = np.sum(image_stats[:,2,i] * (image_stats[:,1,i] + (image_stats[:,0,i] - feature_stats[i,0])**2))/n_samp
-
-        feature_stats[i,2] = np.min(image_stats[:,3,i])
-        feature_stats[i,3] = np.max(image_stats[:,4,i])
-        feature_stats[i,4] = np.sum(image_stats[:,5,i])
-        
-    for i, file in enumerate(feature_files):
-        fid = open(file,'rb')
-        features = pickle.load(fid)
-        fid.close()
+        fp = open(fname,'rb')
+        features = pickle.load(fp)
+        fp.close()
 
         # convert to standard normal distribution: (x - mu)/sigma
-        features_normalized = np.divide(
-            np.subtract(
-                features,
-                feature_stats[:,0].reshape(1,-1)),
-            np.sqrt(
-                feature_stats[:,1].reshape(1,-1)))
+        df = pandas.DataFrame(features)
+        df = df.set_index('label')
+        df_normalized = (df - fstat['avg']) / fstat['var'].apply(np.sqrt)
 
         # dump to new pickle file
-        fid = open(re.sub('\..+$','_normalized\g<0>',file), 'wb')
-        pickle.dump(features_normalized,fid)
+        fid = open(re.sub('\.[^\.]+$','_normalized\g<0>',fname), 'wb')
+        pickle.dump(df_normalized.T.to_dict().values(),fid)
         fid.close()
-        
-    return image_stats,feature_stats
 
 def train_classification(features,classes,segments,ssvm=None):
     
