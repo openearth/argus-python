@@ -124,6 +124,122 @@ def extract_features(data,segments):
         features.append(feature)
     
     return features
+    
+def extract_features_invariant(data,segments):
+	
+	# Temporal function to check the effect of using only scale-invariant features
+    # built-in pixel features
+    regionprops = skimage.measure.regionprops(segments+1, intensity_image=data.mean(-1))
+    features    = [{key:feature[key] for key in pixelprops} for feature in regionprops]# if feature._slice is not None]
+    
+    # built-in intensity features
+    df = pandas.DataFrame(features)
+    df = df.set_index('label')
+    for channel in range(data.shape[-1]):
+        regionprops = skimage.measure.regionprops(segments+1, intensity_image=data[...,channel])
+        features    = [{'%s.%d' % (key,channel):feature[key] for key in intensityprops} for feature in regionprops]# if feature._slice is not None]
+        df_channel  = pandas.DataFrame(features)
+#        df_channel  = df_channel.set_index('label.%d' % (channel))
+        df          = pandas.merge(df, 
+                                   df_channel, 
+                                   how='outer', 
+                                   left_index=True, 
+                                   right_index=True)
+                               
+    # custom features
+    features = []
+    for i, row in df.iterrows():
+        
+        feature = row.to_dict()
+        feature['label'] = row.name
+       
+        # size is represented by the portion of the image covered by the region
+        feature['size'] = np.prod(segments.shape)/feature['area']
+        
+        # position is represented using the coordinates of the region center of mass normalized by the image dimensions
+        feature["position.n"] = feature['centroid'][0]/segments.shape[0]
+        feature["position.m"] = feature['centroid'][1]/segments.shape[1]
+        
+        # holeyness is defined as the convex area divided by the area
+        feature["holeyness"] = feature["convex_area"]/feature["area"]
+        
+        # shape is represented by the ratio of the area to the perimeter squared
+        # seems to be the same as solidity
+        feature["shape"] = feature["area"]/(feature["perimeter"]**2)
+    
+        # color
+        n_channels = data.shape[2]
+        minn, minm, maxn, maxm = feature['bbox']
+
+        # select the pixels that are not in the image
+        mask = np.logical_not(feature['image'])[:,:,np.newaxis]
+
+        # repeat along the channels
+        mask_channels = np.repeat(mask, repeats=n_channels, axis=2)
+
+        # select the image pixels and apply the mask
+        data_sp = np.ma.masked_array(data[minn:maxn, minm:maxm,:], mask=mask_channels)
+        feature['image_masked'] = data_sp
+        for channel in range(n_channels):
+
+            # N based sample var
+            feature["variance_intensity.%d" % channel] = (feature['image_masked'][...,channel]).var()
+
+        for channel in range(n_channels):
+            feature["mean_relative_intensity.%d" % channel] = (feature['image_masked'][...,channel].astype('float')/feature['image_masked'].sum(-1)).mean()
+            feature["variance_relative_intensity.%d" % channel] = (feature['image_masked'][...,channel].astype('float')/feature['image_masked'].sum(-1)).var()
+
+        for channel in range(n_channels):
+            n = 5
+            counts, bins = np.histogram(feature['image_masked'][...,channel], bins=np.linspace(0, 255, endpoint=True, num=n+1))
+            feature["histogram.%d" % channel] = counts
+		
+		# These texture features are not scale-invariant! Use Gabor-filtering instead.
+        #for channel in range(n_channels):
+        #    greyprops = skimage.feature.greycomatrix(feature['image_masked'][...,channel], distances=[5,7,11], angles=np.linspace(0,1*np.pi,num=6, endpoint=False))
+        #    for prop in {'contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM'}:
+        #        feature["grey_%s.%d" % (prop, channel)] = skimage.feature.greycoprops(greyprops)
+
+        # these features depend on superpixel size, so should be normalized. pop for now.
+        feature.pop('image_masked')
+        feature.pop('coords')
+        feature.pop('convex_image')
+        feature.pop('filled_image')
+        feature.pop('image')
+        
+        # Normalization to make all features scale-invariant
+        feature["histogram"] = feature["histogram"]/feature["area"] # Normalize the histogram before the superpixel area is normalized itself, see below
+        
+        length_features = ["equivalent_diameter","major_axis_length","minor_axis_length","perimeter"]	# Normalize with square-root of image area
+        area_features = ["area","convex_area","filled_area"]	# Normalize with image area
+        coordinate_features = ["centroid","weighted_centroid"]	# Normalize with image width and height
+        
+        for lfeat in length_features:
+        	feature[lfeat] = feature[lfeat]/np.sqrt(data.size)
+        
+        for afeat in area_features:
+        	feature[afeat] = feature[afeat]/data.size
+        	
+        for cfeat in coordinate_features:
+        	feature[cfeat] = feature[cfeat]/np.array(data.shape)[[0,1]]
+        
+        feature["bbox"][[0,2]] = feature["bbox"][[0,2]]/data.shape[0]
+        feature["bbox"][[1,3]] = feature["bbox"][[0,2]]/data.shape[1]
+        
+        # These features already have a normalized counterpart from the regionprops function
+        feature.pop("moments")
+        feature.pop("moments_central")
+        feature.pop("weighted_moments")
+        feature.pop("weighted_moments_central")
+        
+        feature.pop("size") # This is the inverse of the normalized area feature, makes less sense
+        feature.pop("position.m") # Equal to normalized centroid
+        feature.pop("position.n") # Equal to normalized centroid
+        
+        # Append to features list
+        features.append(feature)
+    
+    return features
 
 def make_features_0d(features):
     '''convert all items in each matrix feature into individual features'''
