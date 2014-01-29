@@ -50,11 +50,12 @@ def extract_features(data,segments):
     # built-in intensity features
     df = pandas.DataFrame(features)
     df = df.set_index('label')
+
     for channel in range(data.shape[-1]):
         regionprops = skimage.measure.regionprops(segments+1, intensity_image=data[...,channel])
         features    = [{'%s.%d' % (key,channel):feature[key] for key in intensityprops} for feature in regionprops]# if feature._slice is not None]
         df_channel  = pandas.DataFrame(features)
-#        df_channel  = df_channel.set_index('label.%d' % (channel))
+        df_channel  = df_channel.set_index('label.%d' % (channel))
         df          = pandas.merge(df, 
                                    df_channel, 
                                    how='outer', 
@@ -139,7 +140,7 @@ def extract_features_invariant(data,segments):
         regionprops = skimage.measure.regionprops(segments+1, intensity_image=data[...,channel])
         features    = [{'%s.%d' % (key,channel):feature[key] for key in intensityprops} for feature in regionprops]# if feature._slice is not None]
         df_channel  = pandas.DataFrame(features)
-#        df_channel  = df_channel.set_index('label.%d' % (channel))
+        df_channel  = df_channel.set_index('label.%d' % (channel))
         df          = pandas.merge(df, 
                                    df_channel, 
                                    how='outer', 
@@ -192,7 +193,7 @@ def extract_features_invariant(data,segments):
         for channel in range(n_channels):
             n = 5
             counts, bins = np.histogram(feature['image_masked'][...,channel], bins=np.linspace(0, 255, endpoint=True, num=n+1))
-            feature["histogram.%d" % channel] = counts
+            feature["histogram.%d" % channel] = counts / feature['area']
 		
 		# These texture features are not scale-invariant! Use Gabor-filtering instead.
         #for channel in range(n_channels):
@@ -208,33 +209,50 @@ def extract_features_invariant(data,segments):
         feature.pop('image')
         
         # Normalization to make all features scale-invariant
-        feature["histogram"] = feature["histogram"]/feature["area"] # Normalize the histogram before the superpixel area is normalized itself, see below
+#        feature["histogram"] = feature["histogram"]/feature["area"] # Normalize the histogram before the superpixel area is normalized itself, see below
+# bas: histogram is per channel only?
         
         length_features = ["equivalent_diameter","major_axis_length","minor_axis_length","perimeter"]	# Normalize with square-root of image area
         area_features = ["area","convex_area","filled_area"]	# Normalize with image area
         coordinate_features = ["centroid","weighted_centroid"]	# Normalize with image width and height
-        
-        for lfeat in length_features:
-        	feature[lfeat] = feature[lfeat]/np.sqrt(data.size)
-        
-        for afeat in area_features:
-        	feature[afeat] = feature[afeat]/data.size
-        	
-        for cfeat in coordinate_features:
-        	feature[cfeat] = feature[cfeat]/np.array(data.shape)[[0,1]]
-        
-        feature["bbox"][[0,2]] = feature["bbox"][[0,2]]/data.shape[0]
-        feature["bbox"][[1,3]] = feature["bbox"][[0,2]]/data.shape[1]
-        
+
         # These features already have a normalized counterpart from the regionprops function
-        feature.pop("moments")
-        feature.pop("moments_central")
-        feature.pop("weighted_moments")
-        feature.pop("weighted_moments_central")
+        # This is the inverse of the normalized area feature, makes less sense
+        # Equal to normalized centroid
+        # Equal to normalized centroid
+        pop_features = ["moments","moments_central","weighted_moments","weighted_moments_central","size","position.m","position.n"]      
         
-        feature.pop("size") # This is the inverse of the normalized area feature, makes less sense
-        feature.pop("position.m") # Equal to normalized centroid
-        feature.pop("position.n") # Equal to normalized centroid
+        for channel in range(n_channels+1):
+            if channel == 0:
+                ext = ''
+            else:
+                ext = '.%d' % (channel-1)
+
+            for lfeat in length_features:
+                feat = lfeat + ext
+                if feature.has_key(feat):
+                    feature[feat] = feature[feat]/np.sqrt(data.size)
+        
+            for afeat in area_features:
+                feat = afeat + ext
+                if feature.has_key(feat):
+                    feature[feat] = feature[feat]/data.size
+        	
+            for cfeat in coordinate_features:
+                feat = cfeat + ext
+                if feature.has_key(feat):
+                    feature[feat] = feature[feat]/np.array(data.shape)[[0,1]]
+        
+            if feature.has_key("bbox"+ext):
+                feature["bbox"+ext] = list(feature["bbox"+ext])
+                feature["bbox"+ext][0] = feature["bbox"+ext][0]/data.shape[0]
+                feature["bbox"+ext][2] = feature["bbox"+ext][2]/data.shape[0]
+                feature["bbox"+ext][1] = feature["bbox"+ext][1]/data.shape[1]
+                feature["bbox"+ext][3] = feature["bbox"+ext][3]/data.shape[1]
+
+            for feat in pop_features:
+                if feature.has_key(feat+ext):
+                    feature.pop(feat+ext)
         
         # Append to features list
         features.append(feature)
@@ -302,6 +320,10 @@ def get_feature_stats(feature_files):
         fp = open(fname,'rb')
         features = pickle.load(fp)
         fp.close()
+
+        # FIXME: remove this
+        if type(features) == tuple:
+            features = features[-1]
 
         df = pandas.DataFrame(features)
         df = df.set_index('label')
@@ -382,13 +404,17 @@ def normalize_features(feature_files, fstat):
         features = pickle.load(fp)
         fp.close()
 
+        # FIXME: remove this
+        if type(features) == tuple:
+            features = features[-1]
+
         # convert to standard normal distribution: (x - mu)/sigma
         df = pandas.DataFrame(features)
         df = df.set_index('label')
         df_normalized = (df - fstat['avg']) / fstat['var'].apply(np.sqrt)
 
         # dump to new pickle file
-        fid = open(re.sub('\.[^\.]+$','_normalized\g<0>',fname), 'wb')
+        fid = open(re.sub('\.[^\.]+$','.normalized\g<0>',fname), 'wb')
         pickle.dump(df_normalized.T.to_dict().values(),fid)
         fid.close()
 
