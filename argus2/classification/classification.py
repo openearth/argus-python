@@ -196,10 +196,10 @@ def extract_features_invariant(data,segments):
             feature["histogram.%d" % channel] = counts / feature['area']
 		
 		# These texture features are not scale-invariant! Use Gabor-filtering instead.
-        #for channel in range(n_channels):
-        #    greyprops = skimage.feature.greycomatrix(feature['image_masked'][...,channel], distances=[5,7,11], angles=np.linspace(0,1*np.pi,num=6, endpoint=False))
-        #    for prop in {'contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM'}:
-        #        feature["grey_%s.%d" % (prop, channel)] = skimage.feature.greycoprops(greyprops)
+        for channel in range(n_channels):
+            greyprops = skimage.feature.greycomatrix(feature['image_masked'][...,channel], distances=[5,7,11], angles=np.linspace(0,1*np.pi,num=6, endpoint=False))
+            for prop in {'contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM'}:
+                feature["grey_%s.%d" % (prop, channel)] = skimage.feature.greycoprops(greyprops)
 
         # these features depend on superpixel size, so should be normalized. pop for now.
         feature.pop('image_masked')
@@ -209,8 +209,8 @@ def extract_features_invariant(data,segments):
         feature.pop('image')
         
         # Normalization to make all features scale-invariant
-#        feature["histogram"] = feature["histogram"]/feature["area"] # Normalize the histogram before the superpixel area is normalized itself, see below
-# bas: histogram is per channel only?
+        for channel in range(n_channels):
+            feature["histogram.%d" % channel] = feature["histogram.%d" % channel]/feature["area"] # Normalize the histogram before the superpixel area is normalized itself, see below
         
         length_features = ["equivalent_diameter","major_axis_length","minor_axis_length","perimeter"]	# Normalize with square-root of image area
         area_features = ["area","convex_area","filled_area"]	# Normalize with image area
