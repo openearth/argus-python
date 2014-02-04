@@ -22,7 +22,7 @@ def remove_disjoint(segments):
         inds.pop(maxind[i])
         
         for j in inds:
-            neighsegs = [seg_new[ecoor] for ecoor in e[i][j] if ecoor not in r[seg_new[ecoor]][maxind[seg_new[ecoor]]]]
+            neighsegs = [seg_new[ecoor] for ecoor in e[i][j] if ecoor in r[seg_new[ecoor]][maxind[seg_new[ecoor]]]]
             
             if neighsegs == []:
                 neighsegs = [seg_new[ecoor] for ecoor in e[i][j]]
