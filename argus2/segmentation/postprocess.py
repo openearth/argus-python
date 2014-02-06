@@ -4,7 +4,7 @@ import collections
 def remove_disjoint(segments):
     '''Remove disjoint regions in segmentation'''
     
-    seg_new = segments.copy()
+    seg_new = np.asarray(segments).copy()
     r = []
     e = []
     maxind = []
