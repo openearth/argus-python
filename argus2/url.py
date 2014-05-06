@@ -1,8 +1,14 @@
 import re
 import urllib2
 import datetime
+import cStringIO
+import matplotlib
 
-from argus2.filesys import filename
+# do not show any images
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
+import filename
 
 remoteHost = r'http://argus-data.wldelft.nl/sites'
 localHost  = r'http://127.0.0.1:6543/sites'
@@ -42,6 +48,19 @@ def extract_image_urls(url, oDate=None):
         return urls
     else:
         return []
+
+def image_from_url(url, slice=0):
+  'Get image date from URL'
+  
+  f = cStringIO.StringIO(urllib2.urlopen(url).read())
+  img = plt.imread(f, format='jpg')
+  
+  if slice > 0:
+    img = img[::slice,::slice,:]
+    
+  img = img[:,:,:3]/255.0 # FIXME: ignore alpha
+  
+  return img
 
 def read_url_contents(url):
     'Read entire contents of URL'
