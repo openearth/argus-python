@@ -2,6 +2,8 @@ import re
 import datetime
 import pytz
 
+HOST = r'http://argus-data.wldelft.nl/sites'
+
 argusname = re.compile(
     r'(?P<timestamp>\d+)' # timestamp
     r'\.'                 
@@ -43,9 +45,14 @@ def url2filename(url):
 def filename2url(filename):
     m = filename2fileparts(filename)
     d = filename2datetime(filename)
-    url = 'http://argus-data.deltares.nl/sites/%s/%s/c%s/%03d_%s.%s/%s' % (
-        m['station'],m['year'],m['camera'],int(d.strftime('%j')),m['month'],m['day'],
-        filename)
+    url = '%s/%s/%s/c%s/%03d_%s.%s/%s' % (HOST,
+                                          m['station'],
+                                          m['year'],
+                                          m['camera'],
+                                          int(d.strftime('%j')),
+                                          m['month'],
+                                          m['day'],
+                                          filename)
     return url
 
 def filename2dayfile(filename):
@@ -149,3 +156,18 @@ def datetime2regex(oDate):
         regex = oDate.strftime('\d+\.%a\.%b\.%d_%H_%M_%S\.\w+\.%Y\.\w+\.c\d+\.\w+\.jpg')
     
     return regex
+
+def overview_year_url(station, year):
+    
+    return '%s/%s/%s/index.html' % (HOST, station, year)
+    
+def overview_day_url(station, oDate, type='snap'):
+    
+    if re.match('c\d+$', type):
+        return oDate.strftime('%s/%s/%%Y/%s/%%j_%%b.%%d/index.html' % (HOST, station, type))
+    else:
+        return oDate.strftime('%s/%s/%%Y/cx/%%j_%%b.%%d/%s.html' % (HOST, station, type))
+        
+def image_url(station, year, url):
+
+    return '/'.join((HOST, station, year, url))
