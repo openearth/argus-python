@@ -64,8 +64,8 @@ def undistort(U, V, center=(0,0), coefs=(0,0), K=np.identity(3), rectification_d
         coefs = rectification_data['Drad']
         K = rectification_data['K']
 
-    dU = (U - center[0]) / K[0,0]
-    dV = (V - center[1]) / K[1,1]
+    dU = (np.asarray(U) - center[0]) / K[0,0]
+    dV = (np.asarray(V) - center[1]) / K[1,1]
 
     r = np.sqrt(dU**2 + dV**2)
     scale = 1. + np.polyval(coefs, r) / r
@@ -144,12 +144,21 @@ def plot_rectified(images, figsize=(30,20), max_distance=1e4, rotate=True):
                 r2[s] = rest.get_rotation_data(s)
             else:
                 r2[s] = {'rotation':None, 'translation':None}
-    
-        H = flamingo.rectification.find_homography(r1[s][c]['UV'], r1[s][c]['XYZ'], r1[s][c]['K'])
+
+        # distort gcp's
+        UV = [undistort([u], [v], rectification_data=r1[s][c]) for u,v in r1[s][c]['UV']]
+
+        # find homography
+        H = flamingo.rectification.find_homography(UV, r1[s][c]['XYZ'], r1[s][c]['K'])
+
+        # distort image
         u, v = flamingo.rectification.get_pixel_coordinates(img)
         u, v = undistort(u, v, rectification_data=r1[s][c])
+
+        # rectify image
         x, y = flamingo.rectification.rectify_coordinates(u, v, H)
     
+        # plot image
         fig, axs = flamingo.rectification.plot.plot_rectified([-x], [y], [img], 
                                                               figsize=figsize,
                                                               max_distance=max_distance,
