@@ -42,10 +42,10 @@ def url2filename(url):
     else:
         return m.group()
 
-def filename2url(filename):
+def filename2url(filename, host=HOST):
     m = filename2fileparts(filename)
     d = filename2datetime(filename)
-    url = '%s/%s/%s/c%s/%03d_%s.%s/%s' % (HOST,
+    url = '%s/%s/%s/c%s/%03d_%s.%s/%s' % (host,
                                           m['station'],
                                           m['year'],
                                           m['camera'],
@@ -157,17 +157,17 @@ def datetime2regex(oDate):
     
     return regex
 
-def overview_year_url(station, year):
+def overview_year_url(station, year, host=HOST):
     
-    return '%s/%s/%s/index.html' % (HOST, station, year)
+    return '%s/%s/%s/index.html' % (host, station, year)
     
-def overview_day_url(station, oDate, type='snap'):
+def overview_day_url(station, oDate, type='snap', host=HOST):
     
     if re.match('c\d+$', type):
-        return oDate.strftime('%s/%s/%%Y/%s/%%j_%%b.%%d/index.html' % (HOST, station, type))
+        return oDate.strftime('%s/%s/%%Y/%s/%%j_%%b.%%d/index.html' % (host, station, type))
     else:
-        return oDate.strftime('%s/%s/%%Y/cx/%%j_%%b.%%d/%s.html' % (HOST, station, type))
+        return oDate.strftime('%s/%s/%%Y/cx/%%j_%%b.%%d/%s.html' % (host, station, type))
         
-def image_url(station, year, url):
+def image_url(station, year, url, host=HOST):
 
-    return '/'.join((HOST, station, year, url))
+    return '/'.join((host, station, year, url))
