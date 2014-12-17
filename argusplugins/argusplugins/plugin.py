@@ -4,7 +4,7 @@ import plugins
 import numpy as np
 import urllib
 
-from argus2 import image, filesys
+from argus import image, filesys
 
 def run_plugins(plugins, filename, request, plot=True):
     'Run multiple plugins in sequence'

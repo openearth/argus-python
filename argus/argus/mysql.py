@@ -4,7 +4,7 @@ import numpy as np
 import MySQLdb
 import re
 
-from argus2 import filesys
+from argus import filesys
 
 MXNAMES  = [  'UNKNOWN',
               'CELL',

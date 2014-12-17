@@ -5,7 +5,7 @@ import time
 import numpy as np
 import random
 
-from argus2 import filename, url
+import filename, url
 
 ###############################################################################
 

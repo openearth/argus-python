@@ -1,5 +1,5 @@
-from argus2 import image
-from argus2 import segmentation as seg
+from argus import image
+from argus import segmentation as seg
 
 ###############################################################################
 ## PLUGIN OPTIONS                                                            ##
