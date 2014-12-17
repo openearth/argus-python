@@ -1,0 +1,200 @@
+.argus-image-classifier {
+    width:1200px;
+    border:1px solid #aaaaaa;
+    border-radius:4px;
+    margin-left:auto;
+    margin-right:auto;
+    background-color:#ffffff;
+}
+
+.argus-image-classifier-toolbar {
+    margin:0 10px 10px 10px;
+}
+
+.argus-image-classifier-toolbar .spacer {
+    width:10px;
+}
+
+.argus-image-classifier-toolbar div {
+    display:inline-block;
+    height:24px;
+    margin:0 1px;
+    overflow:hidden;
+}
+
+.argus-image-classifier-toolbar label {
+    margin-top:7px;
+}
+
+.argus-image-classifier-toolbar input {
+    height:20px;
+    width:50px;
+}
+
+.argus-image-classifier-display .display-image {
+    display:inline-block;
+    width:0px;
+    height:0px;
+    margin:10px;
+}
+
+.argus-image-classifier-display .display-image div {
+    width:100%;
+    height:100%;
+    position:relative;
+}
+
+.argus-image-classifier-display .display-image canvas {
+    position:absolute;
+    top:0px;
+    left:0px;
+    width:100%;
+    height:100%;
+    background-size:100% 100%;
+    box-shadow:2px 2px 3px #aaaaaa;
+}
+
+.argus-image-classifier-display svg {
+    position:absolute;
+    top:0px;
+    left:0px;
+    width:100%;
+    height:100%;
+    background-size:100% 100%;
+    box-shadow:2px 2px 3px #aaaaaa;
+}
+
+.argus-image-classifier-display svg path.superpixel {
+    fill:#ff0000;
+    fill-opacity:0;
+    stroke-opacity:.25;
+    stroke:#aaaaaa;
+}
+
+.argus-image-classifier-display svg path.superpixel:hover {
+    fill:#ff0000 !important;
+    fill-opacity:.25 !important;
+    stroke-opacity:1 !important;
+    stroke:#ff0000 !important;
+}
+
+.argus-image-classifier-display svg path.superpixel.selected {
+    fill:#00ff00 !important;
+    fill-opacity:.25 !important;
+    stroke-opacity:1 !important;
+    stroke:#00ff00 !important;
+}
+
+.argus-image-classifier-display svg path.superpixel.classified {
+    fill-opacity:1;
+    stroke-opacity:1;
+}
+
+.argus-image-classifier-selector {
+    border:1px dotted #aaaaaa;
+    border-radius:4px;
+    min-height:56px;
+    margin:10px;
+}
+
+.argus-image-classifier-selector ul {
+    list-style:none;
+    padding:5px;
+    margin:0px;
+}
+
+.argus-image-classifier-selector li {
+    width:100px;
+    padding:10px;
+    margin:5px;
+    text-align:center;
+    display:inline-block;
+    cursor:pointer;
+    box-shadow:2px 2px 3px #aaaaaa;
+    overflow:hidden;
+}
+
+.argus-image-classifier-selector li.selected {
+    box-shadow:6px 6px 3px #aaaaaa;
+    margin-top:-9px;
+}
+
+.argus-image-classifier-selector li.current {
+    text-decoration:underline;
+}
+
+.argus-image-classifier-queue {
+    float:right;
+}
+
+.argus-image-classifier-queue div {
+    position:relative;
+    z-index:-1;
+}
+
+.argus-image-classifier-queue ul {
+    padding:0px;
+    margin:0px;
+    position:absolute;
+    bottom:0px;
+    width:0px;
+}
+
+.argus-image-classifier-queue li {
+    width:220px;
+    border:1px solid #aaaaaa;
+    border-radius:4px;
+    list-style-type:none;
+    margin-left:-241px;
+    margin-bottom:10px;
+    padding:10px;
+    background-color:#ffffff;
+    vertical-align:bottom;
+    overflow:hidden;
+}    
+
+.argus-image-classifier-queue li .queue_id {
+    text-align:right;
+    width:100%;
+    color:#aaaaaa;
+    z-index:0;
+}
+
+.ui-dialog select {
+    width:100%;
+    font-size:20px;
+}
+
+.ui-dialog.overlay .ui-dialog-titlebar,
+.ui-dialog.overlay .ui-dialog-buttonpane {
+    display:none;
+}
+
+.ui-dialog-content .ui-selectable {
+    list-style-type:none;
+    margin:0;
+    padding:0;
+}
+
+.ui-dialog-content .ui-selectable li {
+    margin:3px;
+    padding:1px;
+    float:left;
+}
+
+.ui-dialog-content .ui-selectable li.ui-selected img {
+    border:2px solid #00ff00;
+    margin:0px;
+}
+
+.ui-dialog-content .ui-selectable img.isclassified {
+    opacity:.25;
+    filter:alpha(opacity=25); /* For IE8 and earlier */
+}
+
+.ui-dialog-content .ui-selectable img {
+    width:100px;
+    height:80px;
+    border:1px solid #aaaaaa;
+    margin:1px;
+}

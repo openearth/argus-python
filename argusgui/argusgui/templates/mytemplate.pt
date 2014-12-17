@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Python Argus Framework</title>
+		<link href="static/jquery-ui-1.10.2/css/smoothness/jquery-ui-1.10.2.custom.css" rel="stylesheet">
+		<link href="static/jquery-ui-1.10.2/css/jquery-ui-0.0.1.image-selector.css" rel="stylesheet">
+		<link href="static/jquery-ui-1.10.2/css/jquery-ui-0.0.1.image-collector.css" rel="stylesheet">
+		<link href="static/jquery-ui-1.10.2/css/jquery-ui-0.0.1.image-alternator.css" rel="stylesheet">
+		<script src="static/jquery-ui-1.10.2/js/jquery-1.9.1.js"></script>
+		<script src="static/jquery-ui-1.10.2/js/jquery-ui-1.10.2.custom.js"></script>
+		<script src="static/jquery-ui-1.10.2/js/jquery-ui-1.10.2.hoverintent.js"></script>
+		<script src="static/jquery-ui-1.10.2/js/jquery-ui-0.0.1.image-selector.js"></script>
+		<script src="static/jquery-ui-1.10.2/js/jquery-ui-0.0.1.image-collector.js"></script>
+		<script src="static/jquery-ui-1.10.2/js/jquery-ui-0.0.1.image-alternator.js"></script>
+		<script src="static/jquery-cookie/jquery.cookie.js"></script>
+		<script type="text/javascript">
+			function resizeAll() {
+				docWidth  = $(window).width() - 20;
+				docHeight = $(window).height() - 20;
+
+				$("#image-selector").css('height',docHeight).css('width',parseInt(.2 * docWidth));
+				$("#image-collector").css('height',docHeight).css('width',parseInt(.6 * docWidth - 40));
+				$("#image-alternator").css('height',docHeight).css('width',parseInt(.2 * docWidth));
+
+				$(".ui-image-selector").css('height', docHeight - 65);
+				$(".ui-image-collector").css('height', docHeight - 33 - 20);
+				$(".ui-image-alternator").css('height', docHeight - 33);
+
+				$(".ui-accordion").accordion('refresh');
+			}
+
+			$(function() {
+				$("#image-selector").imageSelector({collectorObject: $('#image-collector')});
+				$("#image-collector").imageCollector();
+				$("#image-alternator").imageAlternator({collectorObject: $('#image-collector')});
+
+				resizeAll();
+
+				$(window).bind('resize', resizeAll);
+			});
+		</script>
+		<style type="text/css">
+			body, div, td, label {
+				font-family:verdana;
+				font-size:10px;
+			}
+
+			label {
+				cursor:pointer;
+			}
+
+			#image-selector,
+			#image-alternator {
+				width:20%;
+				border:0px;
+				float:left;
+				background-color:white;
+			}
+
+			#image-collector {
+				width:58%;
+				float:left;
+				margin-left:10px;
+				margin-right:10px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="image-selector"></div>
+		<div id="image-collector"></div>
+		<div id="image-alternator"></div>
+	</body>
+</html>

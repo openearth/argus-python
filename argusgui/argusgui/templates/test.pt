@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Python Argus Framework</title>
+		<link href="${request.static_url('argusgui:static/jquery-ui-1.10.2/css/smoothness/jquery-ui-1.10.2.custom.css')}" rel="stylesheet">
+		<link href="${request.static_url('argusgui:static/css/argus-image-display.css')}" rel="stylesheet">
+                <script src="${request.static_url('argusgui:static/jquery-ui-1.10.2/js/jquery-1.9.1.js')}"></script>
+		<script src="${request.static_url('argusgui:static/jquery-ui-1.10.2/js/jquery-ui-1.10.2.custom.js')}"></script>
+		<script src="${request.static_url('argusgui:static/js/argus-image-display.js')}"></script>
+                <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+		<script type="text/javascript">
+			$(function() {
+                                $("#container").argusImageDisplay({
+			                dataset: "test_bas",
+			                image: "1360828805.Thu.Feb.14_08_00_05.UTC.2013.kijkduin.c5.snap.jpg",
+			                imageHost: "${request.static_url('argusgui:datasets/')}",
+                                        datasetHost: "${request.route_url('datasets')}"});
+                                $("#container2").argusImageDisplay({
+			                background: false,
+			                dataset: "test_bas",
+			                image: "1360828805.Thu.Feb.14_08_00_05.UTC.2013.kijkduin.c5.snap.jpg",
+			                imageHost: "${request.static_url('argusgui:datasets/')}",
+                                        datasetHost: "${request.route_url('datasets')}",
+			                linkedTo: $("#container")});
+			});
+		</script>
+		<style>
+		  div {
+		  float:left;}
+		</style>
+	</head>
+	<body>
+                <div id="container"></div>
+                <div id="container2"></div>
+	</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Python Argus Framework</title>
+		<link href="${request.static_url('argusgui:static/jquery-ui-1.10.2/css/smoothness/jquery-ui-1.10.2.custom.css')}" rel="stylesheet">
+		<link href="${request.static_url('argusgui:static/css/argus-image-classifier.css')}" rel="stylesheet">
+                <script src="${request.static_url('argusgui:static/jquery-ui-1.10.2/js/jquery-1.9.1.js')}"></script>
+		<script src="${request.static_url('argusgui:static/jquery-ui-1.10.2/js/jquery-ui-1.10.2.custom.js')}"></script>
+		<script src="${request.static_url('argusgui:static/jquery-cookie/jquery.cookie.js')}"></script>
+		<script src="${request.static_url('argusgui:static/js/argus-image-classifier.js')}"></script>
+                <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+		<script type="text/javascript">
+			function resizeAll() {
+				docWidth  = $(window).width() - 20;
+				docHeight = $(window).height() - 20;
+
+                                $("#argus-image-classifier").css("height", docHeight-20);
+			}
+
+			function updateQueue() {
+			        $("#argus-image-classifier").argusImageClassifier("updateQueue");
+			        setTimeout("updateQueue()", 5000);
+			}
+
+			$(function() {
+                                $("#argus-image-classifier").argusImageClassifier({
+                                        jsonHost: "${request.route_url('gui_classification')}",
+			                imageHost: "${request.static_url('argusgui:datasets/')}",
+                                        datasetHost: "${request.route_url('datasets')}"});
+
+				resizeAll();
+				$(window).bind('resize', resizeAll);
+
+           			updateQueue();
+			});
+		</script>
+		<style type="text/css">
+			body, div, td, label {
+				font-family:verdana;
+				font-size:10px;
+			}
+                        .footer {
+                                font-size:8px;
+                                text-align:center;
+                                margin-top:10px;
+                                margin-bottom:10px;
+                                float:left;
+                                width:100%;
+                        }
+                        .footer img {
+                                vertical-align:-2px;
+                        }
+		</style>
+	</head>
+	<body>
+                <div id="argus-image-classifier"></div>
+                <div class="footer">This classification tool is brought to you by The <i>Awesome</i> <a href="http://nemo.citg.tudelft.nl/"><img src="${request.static_url('argusgui:static/nemo_footer.gif')}"></a> Project. &copy; 2013 Bas Hoonhout</div>
+
+	</body>
+</html>

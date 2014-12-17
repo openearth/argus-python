@@ -1,0 +1,30 @@
+div, span {
+  -webkit-box-sizing:border-box;
+  -moz-box-sizing:border-box;
+  box-sizing:border-box;
+}
+
+#argus-image-plugins {
+  width:250px;
+  border:1px solid #aaaaaa;
+  border-radius:4px;
+  padding:5px;
+  height:600px;
+}
+
+#argus-image-plugins div.hline {
+  border-top:1px solid #cccccc;
+  height:0px;
+  width:100%;
+  margin-top:5px;
+  margin-bottom:5px;
+}
+
+.argus-image-plugins-slice {
+  padding:10px;
+}
+
+.argus-image-plugins-slice #slice,
+.argus-image-plugins-slice .ui-spinner {
+  width:100%;
+}

@@ -1,0 +1,79 @@
+.argus-image-compare {
+    width:1200px;
+    margin-left:auto;
+    margin-right:auto;
+    background-color:#ffffff;
+}
+
+.argus-image-compare-datasets {
+    height:25px;
+    text-align:center;
+    margin-bottom:10px;
+}
+
+.argus-image-compare-display .ui-tabs-nav li a {
+    max-width:150px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.argus-image-compare-display .display-image {
+    display:inline-block;
+    width:560px;
+    height:420px;
+    margin:10px;
+}
+
+.argus-image-compare-display .display-image div {
+    width:100%;
+    height:100%;
+    position:relative;
+}
+
+.argus-image-compare-display svg {
+    position:absolute;
+    top:0px;
+    left:0px;
+    width:100%;
+    height:100%;
+    background-size:100% 100%;
+    box-shadow:2px 2px 3px #aaaaaa;
+}
+
+.argus-image-compare-display svg path.superpixel {
+    fill-opacity:0;
+    stroke-opacity:1;
+    fill:#ffff00;
+    stroke:#aaaaaa;
+}
+
+.argus-image-compare-display svg path.superpixel:hover {
+    fill-opacity:.5 !important;
+}
+
+.argus-image-compare-display svg path.superpixel.match {
+    fill-opacity:.25;
+    fill:#ff0000 !important;
+}
+
+.argus-image-compare-display svg path.superpixel.nomatch {
+    fill-opacity:.25;
+    fill:#00ff00 !important;
+}
+
+.argus-image-compare-display svg path.superpixel.classified {
+    fill-opacity:.25;
+}
+
+.argus-image-compare-display svg path.superpixel.selected {
+    stroke:#ff0000 !important;
+    stroke-width:3;
+}
+
+.argus-image-compare #log {
+    border:1px dashed #aaaaaa;
+    border-radius:4px;
+    margin-top:10px;
+    padding:10px;
+}

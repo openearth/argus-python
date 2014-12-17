@@ -1,0 +1,79 @@
+div, span {
+  -webkit-box-sizing:border-box;
+  -moz-box-sizing:border-box;
+  box-sizing:border-box;
+}
+
+.argus-image-selector {
+  width:187px;
+}
+
+.argus-image-selector .ui-button {
+  border-color:#aaaaaa;
+}
+
+.argus-image-selector-cameras,
+.argus-image-selector-types {
+  width:101%;
+  margin-bottom:6px;
+}
+
+.argus-image-selector-cameras .ui-button-text,
+.argus-image-selector-types .ui-button-text {
+  padding:.4em 0;
+}
+
+.argus-image-selector-sites,
+.argus-image-selector-time {
+  width:100%;
+  border:1px solid #aaaaaa;
+  border-radius: 4px;
+  margin:5px 0;
+}
+
+.argus-image-selector-sites select,
+.argus-image-selector-time select {
+  width:95%;
+  margin:5px;
+  color:#555555;
+}
+
+.argus-image-selector-time {
+  float:left;
+}
+
+.argus-image-selector-time ol {
+  list-style-type:none;
+  margin:5px 10px;
+  padding:0;
+  float:left;
+}
+
+.argus-image-selector-time li {
+  border:1px solid #d3d3d3;
+  background:#e6e6e6 url(../jquery-ui-1.10.2/css/smoothness/images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x;
+  color:#555555;
+  text-align:center;
+  float:left;
+  padding:.2em;
+  margin:.1em;
+  cursor:pointer;
+}
+
+.argus-image-selector-time .ui-selecting {
+  border:1px solid #999999;
+  background:#dadada url(../jquery-ui-1.10.2/css/smoothness/images/ui-bg_glass_75_dadada_1x400.png) 50% 50% repeat-x;
+  color:#212121;
+}
+
+.argus-image-selector-time .ui-selected {
+  border:1px solid #fcefa1;
+  background:#fbf9ee url(../jquery-ui-1.10.2/css/smoothness/images/ui-bg_glass_55_fbf9ee_1x400.png) 50% 50% repeat-x;
+  color:#363636;
+}
+
+.argus-image-selector-button {
+  width:100%;
+  margin-top:0px;
+  margin-bottom:6px;
+}

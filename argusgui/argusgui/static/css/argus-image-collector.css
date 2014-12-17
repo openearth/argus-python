@@ -1,0 +1,148 @@
+div, span {
+  -webkit-box-sizing:border-box;
+  -moz-box-sizing:border-box;
+  box-sizing:border-box;
+}
+
+.ui-tooltip {
+  max-width:650px;
+}
+
+.argus-image-collector {
+  width:800px;
+  height:600px;
+  border:1px solid #aaaaaa;
+  border-radius:4px;
+  padding:5px;
+}
+
+.argus-image-collector-dialogbar,
+.argus-image-collector-menubar {
+  border:0;
+  width:360px;
+  padding:0;
+  height:28px;
+  float:left;
+}
+
+.argus-image-collector-dialogbar .ui-button,
+.argus-image-collector-menubar .ui-button {
+  float:right;
+  height:24px;
+  margin:0 1px;
+}
+
+.argus-image-collector-menubar .ui-button {
+  border-color:#aaaaaa;
+}
+
+.argus-image-collector-dialogbar .argus-image-collector-dialogbar-message {
+  height:24px;
+  width:85%;
+  float:left;
+  padding:5px 4px;
+}
+
+.argus-image-collector-dialogbar .argus-image-collector-dialogbar-message .ui-icon {
+  float:left;
+  margin-right:.3em;
+}
+
+.argus-image-collector-collection {
+  border:1px solid #aaaaaa;
+  border-radius:4px;
+  border-style:dotted;
+  padding:5px;
+  width:360px;
+  height:95%;
+  overflow-x:hidden;
+  overflow-y:scroll;
+  float:left;
+}
+
+.argus-image-collector-collection .ui-selectable {
+  width:100%;
+  height:100%;
+  float:left;
+}
+
+.argus-image-collector-collection img {
+  width:80px;
+  height:60px;
+  margin:0px;
+  border:0px solid black;
+  cursor:pointer;
+}
+
+.argus-image-collector-collection .argus-image-collector-item,
+.argus-image-collector-collection .argus-image-collector-item-highlight {
+  width:80px;
+  height:60px;
+  margin:1px;
+  border:1px solid black;
+  display:inline-block;
+  float:left;
+}
+
+.argus-image-collector-collection .argus-image-collector-item-highlight {
+  background-color:#fbf9ee;
+  border:1px solid #fcefa1;  
+}
+
+.argus-image-collector-collection .argus-image-collector-item.ui-selected {
+  border:1px solid #fcefa1;
+}
+
+.argus-image-collector-preview {
+  border:1px solid #aaaaaa;
+  border-radius:4px;
+  border-style:dotted;
+  padding:5px;
+  width:600px;
+  height:95%;
+  overflow:hidden;
+  float:left;
+  margin-left:5px;
+}
+
+.argus-image-collector-preview .preview-image {
+  float:left;
+  width:100%;
+  border:1px solid black;
+}
+
+.argus-image-collector-preview .preview-info {
+  float:left;
+  margin:10px;
+  width:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+
+.argus-image-collector-preview .preview-move-left {
+  float:left;
+  width:50px;
+  margin:10px;
+}
+
+.argus-image-collector-preview .preview-move-right {
+  float:right;
+  width:50px;
+  margin:10px;
+}
+
+.dynamic-data {
+  float:left;
+  height:20px;
+  width:300px;
+  padding:5px;
+}
+
+.dynamic-data-label {
+  width:100px;
+  display:inline-block;
+}
+
+.dynamic-data-value {
+  font-weight:bold;
+}

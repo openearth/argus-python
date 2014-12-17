@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Python Argus Framework</title>
+		<link href="${request.static_url('argusgui:static/jquery-ui-1.10.2/css/smoothness/jquery-ui-1.10.2.custom.css')}" rel="stylesheet">
+		<link href="${request.static_url('argusgui:static/css/argus-image-selector.css')}" rel="stylesheet">
+		<link href="${request.static_url('argusgui:static/css/argus-image-collector.css')}" rel="stylesheet">
+		<link href="${request.static_url('argusgui:static/css/argus-image-plugins.css')}" rel="stylesheet">
+		<script src="${request.static_url('argusgui:static/jquery-ui-1.10.2/js/jquery-1.9.1.js')}"></script>
+		<script src="${request.static_url('argusgui:static/jquery-ui-1.10.2/js/jquery-ui-1.10.2.custom.js')}"></script>
+		<script src="${request.static_url('argusgui:static/jquery-cookie/jquery.cookie.js')}"></script>
+		<script src="${request.static_url('argusgui:static/js/argus-image-selector.js')}"></script>
+		<script src="${request.static_url('argusgui:static/js/argus-image-collector.js')}"></script>
+		<script src="static/js/argus-image-plugins.js"></script>
+		<script type="text/javascript">
+			function resizeAll() {
+				docWidth  = $(window).width() - 20;
+				docHeight = $(window).height() - 20 - 30;
+
+				$("#argus-image-collector").css('height',parseInt(docHeight)).css('width',parseInt(docWidth - 187 - 250 - 30));
+				$("#argus-image-plugins").css('height',parseInt(docHeight));
+			}
+
+			$(function() {
+				$("#argus-image-selector").argusImageSelector({
+					onSelect:function(images) {
+						$("#argus-image-collector").argusImageCollector("addImages",images);
+					}
+				});
+
+				$("#argus-image-collector").argusImageCollector();
+				$("#argus-image-plugins").argusImagePlugins({
+					getCurrentFigure:function() {
+						return $("#argus-image-collector").argusImageCollector("getImage");
+					},
+					setCurrentFigure:function(url) {
+						$("#argus-image-collector").argusImageCollector("setImage",url);
+					}
+				});
+
+				resizeAll();
+
+				$(window).bind('resize', resizeAll);
+			});
+		</script>
+		<style type="text/css">
+			body, div, td, label {
+			font-family:verdana;
+			font-size:10px;
+			}
+			#argus-image-selector,
+			#argus-image-collector,
+			#argus-image-plugins {
+			float:left;
+			margin-right:10px;
+			}
+			.footer {
+			font-size:8px;
+			text-align:center;
+			margin-top:20px;
+			float:left;
+			width:100%;
+			}
+			.footer img {
+			vertical-align:-2px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="argus-image-selector"></div>
+		<div id="argus-image-collector"></div>
+		<div id="argus-image-plugins"></div>
+		<div class="footer">
+		  This Argus webinterface is brought to you by The <i>Awesome</i> <a href="http://nemo.citg.tudelft.nl/"><img src="${request.static_url('argusgui:static/nemo_footer.png')}"></a> Project. &copy; 2013 Bas Hoonhout
+		</div>
+	</body>
+</html>
