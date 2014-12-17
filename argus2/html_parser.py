@@ -5,7 +5,7 @@ import time
 import numpy as np
 import random
 
-from argus2 import filesys
+from argus2 import filename, url
 
 ###############################################################################
 
@@ -20,7 +20,7 @@ def get_station_years(station):
 
         print 'Parsing year %d...' % year
 
-        contents = filesys.url.read_url_contents(filesys.url.overview_year_url(station, year))
+        contents = url.read_url_contents(url.overview_year_url(station, year))
 
         if contents != None:
             years.append(year)
@@ -55,12 +55,11 @@ def get_station_series(station, year, month, day):
 
 def get_station_images(station, year=None, month=None, day=None, series=None, imgtype='snap'):
 
-    oDate   = filesys.filename.fileparts2datetime(year=year, month=month, day=day, series=series)
+    oDate   = filename.fileparts2datetime(year=year, month=month, day=day, series=series)
+    u       = url.overview_day_url(station, oDate, type=imgtype)
+    urls    = url.extract_image_urls(u, oDate)
 
-    url     = filesys.url.overview_day_url(station, oDate, type=imgtype)
-    urls    = filesys.url.extract_image_urls(url, oDate)
-
-    return [filesys.url.image_url(station, year, url) for url in urls]
+    return [url.image_url(station, year, u) for u in urls]
 
 def get_random_image(stations):
 
@@ -79,8 +78,8 @@ def get_random_image(stations):
 
 def get_station_cameras(station,year):
 
-    url = filesys.url.overview_year_url(station,year)
-    content = filesys.url.read_url_contents(url)
+    u = url.overview_year_url(station,year)
+    content = url.read_url_contents(u)
 
     regexp = re.compile('Cam\s+\d')
     cameras = regexp.findall(content)
@@ -97,7 +96,7 @@ def parse_station_year(station, year):
 
     series = {}
 
-    contents = filesys.url.read_url_contents(filesys.url.overview_year_url(station, year))
+    contents = url.read_url_contents(url.overview_year_url(station, year))
 
     # compile regular expressions
     regex1 = re.compile('<tr><td><p>(\d{3})_(\w{3})\.(\d{2})</p></td>\s*((<td.*?>.*?</td>\s*)+)</tr>');
@@ -125,13 +124,13 @@ def parse_station_day(station, year, month, day, imgtype='snap'):
 
     series = []
 
-    oDate   = filesys.filename.fileparts2datetime(year, month, day)
-    url     = filesys.url.overview_day_url(station, oDate, type=imgtype)
-    urls    = filesys.url.extract_image_urls(url)
+    oDate   = filename.fileparts2datetime(year, month, day)
+    url     = url.overview_day_url(station, oDate, type=imgtype)
+    urls    = url.extract_image_urls(url)
 
     if len(urls) > 0:
 
-        oDate = sorted([filesys.filename.filename2datetime(url) for url in urls])
+        oDate = sorted([filename.filename2datetime(url) for url in urls])
 
         l = 0
         for i in range(len(oDate)):

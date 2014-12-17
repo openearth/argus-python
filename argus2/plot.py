@@ -145,13 +145,13 @@ def plot_rectified(images, figsize=(30,20), max_distance=1e4, rotate=True):
             else:
                 r2[s] = {'rotation':None, 'translation':None}
 
-        # distort gcp's
+        # undistort gcp's
         UV = [undistort([u], [v], rectification_data=r1[s][c]) for u,v in r1[s][c]['UV']]
 
         # find homography
         H = flamingo.rectification.find_homography(UV, r1[s][c]['XYZ'], r1[s][c]['K'])
 
-        # distort image
+        # undistort image
         u, v = flamingo.rectification.get_pixel_coordinates(img)
         u, v = undistort(u, v, rectification_data=r1[s][c])
 
