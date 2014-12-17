@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='argus2',
+    name='argus',
     version='0.0',
     author='Bas Hoonhout',
     author_email='bas.hoonhout@deltares.nl',
