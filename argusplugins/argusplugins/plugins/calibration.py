@@ -1,4 +1,4 @@
-from argus2 import image
+from argus import image
 
 ###############################################################################
 ## PLUGIN OPTIONS                                                            ##
