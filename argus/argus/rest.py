@@ -7,7 +7,8 @@ import numpy as np
 
 import filename
 
-HOST = r'http://argus-public.deltares.nl/'
+#HOST = r'http://argus-public.deltares.nl/'
+HOST = r'http://136.231.49.12/'
 
 def get_rectification_data(station):
 
