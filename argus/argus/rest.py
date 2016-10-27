@@ -7,8 +7,8 @@ import numpy as np
 
 import filename
 
-#HOST = r'http://argus-public.deltares.nl/'
-HOST = r'http://136.231.49.12/'
+HOST = r'http://argus-public.deltares.nl/'
+#HOST = r'http://136.231.49.12/'
 
 def get_rectification_data(station):
 
@@ -100,24 +100,11 @@ def get_image_url(url, slice=0):
 def read_url_contents(url):
     'Read entire contents of URL'
     
-    regex = re.compile('[Zz]andmotor?')
-    if regex.search(url):
-        url = __get_auth_zm(url)
-    
     try:
         return urllib2.urlopen(url).read()
     except:
         return None
         
-def __get_auth_zm(url):
-    
-    req = urllib2.Request(url)
-    unpw = 'emFtbzpkZWxmbGFuZHNla3VzdA=='
-    authheader =  "Basic %s" % unpw
-    req.add_header("Authorization", authheader)
-    
-    return req
-
 def __get_data(table, **kwargs):
     query = '&'.join(['='.join((k,str(v))) for k,v in kwargs.iteritems()])
     url = '%s/db/table/%s?%s' % (HOST, table, query)
