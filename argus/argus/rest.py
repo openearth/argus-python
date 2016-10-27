@@ -4,8 +4,11 @@ import re
 import cStringIO
 import matplotlib.pyplot as plt
 import numpy as np
+import logging
 
 import filename
+
+logger = logging.getLogger(__name__)
 
 def get_rectification_data(host, station):
     '''Get rectification data'''
@@ -13,43 +16,56 @@ def get_rectification_data(host, station):
     rp = {}
 
     # read station
-    station = _get_data(host, 'station', shortName=station)[0]
-
-    # read camera
-    cameras = _get_data(host, 'camera', stationId=station['id'])
-
-    for cam in cameras:
-
-        # read ip
-        #ip = __get_data('IP', id=camera['IPID'])
-
-        cid = cam['cameraNumber']
+    station = _get_data(host, 'station', shortName=station)
+    logger.debug(station)
     
-        rp[cid] = {}
-        rp[cid]['K'] = np.asarray(cam['K']).T
-        rp[cid]['D_U0'] = cam['D_U0']
-        rp[cid]['D_V0'] = cam['D_V0']
-        rp[cid]['D1'] = cam['D1']
-        rp[cid]['D2'] = cam['D2']
-        rp[cid]['Drad'] = np.asarray(cam['Drad']).flatten()
-        rp[cid]['Dtan'] = np.asarray(cam['Dtan']).flatten()
+    if len(station) > 0:
+        station = station[0]
+
+        # read camera
+        cameras = _get_data(host, 'camera', stationId=station['id'])
+        logger.debug(cameras)
+
+        for cam in cameras:
+
+            # read ip
+            #ip = _get_data('IP', id=camera['IPID'])
+
+            cid = cam['cameraNumber']
     
-        rp[cid]['UV'] = []
-        rp[cid]['XYZ'] = []
+            rp[cid] = {}
+            rp[cid]['K'] = np.asarray(cam['K']).T
+            rp[cid]['D_U0'] = cam['D_U0']
+            rp[cid]['D_V0'] = cam['D_V0']
+            rp[cid]['D1'] = cam['D1']
+            rp[cid]['D2'] = cam['D2']
+            rp[cid]['Drad'] = np.asarray(cam['Drad']).flatten()
+            rp[cid]['Dtan'] = np.asarray(cam['Dtan']).flatten()
+    
+            rp[cid]['UV'] = []
+            rp[cid]['XYZ'] = []
   
-        # read geometry
-        geometry = _get_data(host, 'geometry', cameraID=cam['id'])[0]
+            # read geometry
+            geometry = _get_data(host, 'geometry', cameraID=cam['id'])
+            logger.debug(geometry)
+
+            if len(geometry) > 0:
+                geometry = geometry[0]
     
-        # read used gcp's
-        usedgcps = _get_data(host, 'usedGCP', geometrySequence=geometry['seq'])
+                # read used gcp's
+                usedgcps = _get_data(host, 'usedGCP', geometrySequence=geometry['seq'])
+                logger.debug(usedgcps)
     
-        for usedgcp in usedgcps:
+                for usedgcp in usedgcps:
         
-            # read used gcp's
-            gcp = _get_data(host, 'gcp', id=usedgcp['gcpID'])[0]
-    
-            rp[cid]['UV'].append((usedgcp['U'], usedgcp['V']))
-            rp[cid]['XYZ'].append((gcp['y'], gcp['x'], gcp['z']))
+                    # read used gcp's
+                    gcp = _get_data(host, 'gcp', id=usedgcp['gcpID'])
+                    logger.debug(gcp)
+
+                    if len(gcp) > 0:
+                        gcp = gcp[0]
+                        rp[cid]['UV'].append((usedgcp['U'], usedgcp['V']))
+                        rp[cid]['XYZ'].append((gcp['y'], gcp['x'], gcp['z']))
 
     return rp
 
@@ -60,13 +76,21 @@ def get_rotation_data(host, station):
     rp = {}
 
     # read station
-    station = _get_data(host, 'station', shortName=station)[0]
+    station = _get_data(host, 'station', shortName=station)
+    logger.debug(station)
 
-    # read site
-    site = _get_data(host, 'site', id=station['siteID'])[0]
+    if len(station) > 0:
+        station = station[0]
 
-    rp['translation'] = np.asarray(site['coordinateOrigin']).flatten()
-    rp['rotation'] = site['coordinateRotation'] - 90
+        # read site
+        site = _get_data(host, 'site', id=station['siteID'])
+        logger.debug(site)
+
+        if len(site) > 0:
+            site = site[0]
+
+            rp['translation'] = np.asarray(site['coordinateOrigin']).flatten()
+            rp['rotation'] = site['coordinateRotation'] - 90
 
     return rp
 
