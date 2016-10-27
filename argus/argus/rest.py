@@ -7,18 +7,16 @@ import numpy as np
 
 import filename
 
-HOST = r'http://argus-public.deltares.nl/'
-#HOST = r'http://136.231.49.12/'
-
-def get_rectification_data(station):
+def get_rectification_data(host, station):
+    '''Get rectification data'''
 
     rp = {}
 
     # read station
-    station = __get_data('station', shortName=station)[0]
+    station = _get_data(host, 'station', shortName=station)[0]
 
     # read camera
-    cameras = __get_data('camera', stationId=station['id'])
+    cameras = _get_data(host, 'camera', stationId=station['id'])
 
     for cam in cameras:
 
@@ -40,52 +38,111 @@ def get_rectification_data(station):
         rp[cid]['XYZ'] = []
   
         # read geometry
-        geometry = __get_data('geometry', cameraID=cam['id'])[0]
+        geometry = _get_data(host, 'geometry', cameraID=cam['id'])[0]
     
         # read used gcp's
-        usedgcps = __get_data('usedGCP', geometrySequence=geometry['seq'])
+        usedgcps = _get_data(host, 'usedGCP', geometrySequence=geometry['seq'])
     
         for usedgcp in usedgcps:
         
             # read used gcp's
-            gcp = __get_data('gcp', id=usedgcp['gcpID'])[0]
+            gcp = _get_data(host, 'gcp', id=usedgcp['gcpID'])[0]
     
             rp[cid]['UV'].append((usedgcp['U'], usedgcp['V']))
             rp[cid]['XYZ'].append((gcp['y'], gcp['x'], gcp['z']))
 
     return rp
 
-def get_rotation_data(station):
+
+def get_rotation_data(host, station):
+    '''Get rotation data'''
 
     rp = {}
 
     # read station
-    station = __get_data('station', shortName=station)[0]
+    station = _get_data(host, 'station', shortName=station)[0]
 
     # read site
-    site = __get_data('site', id=station['siteID'])[0]
+    site = _get_data(host, 'site', id=station['siteID'])[0]
 
     rp['translation'] = np.asarray(site['coordinateOrigin']).flatten()
     rp['rotation'] = site['coordinateRotation'] - 90
 
     return rp
 
-def get_image_list(station, **kwargs):
-    query = '&'.join(['='.join((k,w)) for k,w in kwargs.iteritems()])
-    fp = urllib2.urlopen('%s/catalog?site=%s&%s&output=json' % (HOST, station, query))
+
+def get_image_list(host, station, **kwargs):
+    '''Get list of url's of available images
+
+    Parameters
+    ----------
+    host : str
+        Host name
+    station : str
+        Name of Argus station (e.g., aberdees, egmond, sete,
+        zandmotor)
+    startEpoch : int
+        Specifies the earliest time for which results are returned. If
+        omitted or zero, only the single most recent image or product
+        is returned (useful only in combination with other clauses). A
+        negative value means "now" minus the specified number of
+        seconds.
+    endEpoch : int
+        Specifies the latest time for which results are returned. If
+        omitted or non-positive, the current time is used.
+    camera : int
+        Limit results to the specified camera. This only applies to
+        raw image data (snap, timex, stack, etc.).
+    type : str
+        The type of image or data product to return. If unspecified,
+        everything is returned.  The following types are recognized:
+        Basic images: snap, timex, var, min, max Pixel time series: stack
+        Merges: plan, pan
+    timeOfDay : int
+        Limit results to the specified time of day, expressed as
+        minutes after midnight, plus or minus 2.5 minutes, in the
+        local time zone. Argus images are typically collected on the
+        whole and half hour.  Stacks can start any time, but usually
+        last 17 minutes.
+    limit : int
+        Limit the number of URLs to be returned. Default is 1000,
+        which is also the maximum for anonymous users. A negative
+        value limits output to most recent results.
+    user : str
+        Identifies the user for non-public data.
+    auth : str
+        Autorization code (requires the use of the HTTPS protocol).
+
+    Returns
+    -------
+    list of str
+        List with full URL's
+
+    '''
+    
+    query = '&'.join(['='.join((k,str(w))) for k,w in kwargs.iteritems()])
+    fp = urllib2.urlopen('%s/catalog?site=%s&%s&output=json' % (host, station, query))
     data = json.load(fp)
     fp.close()
 
-    return [''.join([data['urlPrefix'], x['path'], data['urlSuffix']]) for x in data['data']]
+    return [''.join([data['urlPrefix'], x['path'], data['urlSuffix']])
+            for x in data['data']]
 
-def get_image(fname):
-    if re.match('^\w+:\/\/', fname):
-        return get_image_url(fname)
-    else:
-        return get_image_url(filename.filename2url(fname))
 
-def get_image_url(url, slice=0):
-  'Get image date from URL'
+def _get_data(host, table, **kwargs):
+    '''Raw data read from REST API'''
+    
+    query = '&'.join(['='.join((k,str(v))) for k,v in kwargs.iteritems()])
+    url = '%s/db/table/%s?%s' % (host, table, query)
+    fp = urllib2.urlopen(url)
+    data = json.load(fp)
+    fp.close()
+    
+    return data
+
+
+def get_image(url, slice=0):
+  '''Get image data from URL'''
   
   f = cStringIO.StringIO(read_url_contents(url))
   img = plt.imread(f, format='jpg')
@@ -97,19 +154,11 @@ def get_image_url(url, slice=0):
   
   return img
 
+
 def read_url_contents(url):
-    'Read entire contents of URL'
+    '''Read entire contents of URL'''
     
     try:
         return urllib2.urlopen(url).read()
     except:
         return None
-        
-def __get_data(table, **kwargs):
-    query = '&'.join(['='.join((k,str(v))) for k,v in kwargs.iteritems()])
-    url = '%s/db/table/%s?%s' % (HOST, table, query)
-    fp = urllib2.urlopen(url)
-    data = json.load(fp)
-    fp.close()
-    
-    return data

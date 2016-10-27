@@ -2,7 +2,7 @@ import re
 import datetime
 import pytz
 
-HOST = r'http://argus-data.wldelft.nl/sites'
+HOST = r'http://argus-public.deltares.nl/sites'
 
 argusname = re.compile(
     r'(?P<timestamp>\d+)' # timestamp
