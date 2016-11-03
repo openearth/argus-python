@@ -1,6 +1,7 @@
-import re
+mport re
 import datetime
 import pytz
+
 
 HOST = r'http://argus-public.deltares.nl/sites'
 
@@ -32,8 +33,10 @@ argusname = re.compile(
     r'\.'                 
     r'(?P<extension>\w+)' # extension
     )
-    
+
+
 def url2filename(url):
+    '''Extract filename from fully qualified URL''' 
 
     m = argusname.search(url)
         
@@ -42,7 +45,10 @@ def url2filename(url):
     else:
         return m.group()
 
+    
 def filename2url(filename, host=HOST):
+    '''Expand filename to fully qualified URL'''
+    
     m = filename2fileparts(filename)
     d = filename2datetime(filename)
     url = '%s/%s/%s/c%s/%03d_%s.%s/%s' % (host,
@@ -55,7 +61,9 @@ def filename2url(filename, host=HOST):
                                           filename)
     return url
 
+
 def filename2dayfile(filename):
+    '''Convert filename to filename that is unique for the day'''
 
     m = filename2fileparts(filename)
     
@@ -63,8 +71,10 @@ def filename2dayfile(filename):
         return None
     else:
         return '%s.%s.%s.%s.%s' % (m['month'], m['day'], m['year'], m['station'], m['camera'])
+    
         
 def filename2fileparts(filename):
+    '''Explode filename into relevant parts'''
 
     m = argusname.search(filename)
             
@@ -72,8 +82,10 @@ def filename2fileparts(filename):
         return None
     else:
         return m.groupdict()
+
     
 def filename2datetime(filename):
+    '''Convert filename in datetime object'''
     
     m = filename2fileparts(filename)
     
@@ -81,8 +93,10 @@ def filename2datetime(filename):
         return None
     else:
         return fileparts2datetime(**{k:v for k,v in m.iteritems() if k in ['year','month','day','hour','minute','second', 'tz']})
+    
         
 def fileparts2datetime(year=None, month=None, day=None, hour=None, minute=None, second=None, tz=None, series=None):
+    '''Convert exploded filename into datetime object'''
 
     kwarg  = locals()
     kwargs = kwarg.copy()
@@ -146,7 +160,9 @@ def fileparts2datetime(year=None, month=None, day=None, hour=None, minute=None, 
     else:
         return None
 
+    
 def datetime2regex(oDate):
+    '''Return regular expression that matches given datetime object'''
 
     if type(oDate) is datetime.time:
         regex = oDate.strftime('\d+\.\w+\.\w+\.\d+_%H_%M_%S\.\w+\.\d+\.\w+\.c\d+\.\w+\.jpg')
@@ -157,17 +173,8 @@ def datetime2regex(oDate):
     
     return regex
 
-def overview_year_url(station, year, host=HOST):
-    
-    return '%s/%s/%s/index.html' % (host, station, year)
-    
-def overview_day_url(station, oDate, type='snap', host=HOST):
-    
-    if re.match('c\d+$', type):
-        return oDate.strftime('%s/%s/%%Y/%s/%%j_%%b.%%d/index.html' % (host, station, type))
-    else:
-        return oDate.strftime('%s/%s/%%Y/cx/%%j_%%b.%%d/%s.html' % (host, station, type))
-        
+
 def image_url(station, year, url, host=HOST):
+    '''Return image URL'''
 
     return '/'.join((host, station, year, url))

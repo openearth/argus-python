@@ -13,7 +13,40 @@ logger = logging.getLogger(__name__)
 
 
 def get_rectification_data(host, station):
-    '''Get rectification data'''
+    '''Get rectification data for camera station
+
+    Parameters
+    ----------
+    host : str
+        Hostname of REST service
+    station : str
+        Name of camera station
+
+    Returns
+    -------
+    rp : dict
+        Dictionary with rectification data:
+
+        .. code-block:: json
+    
+           {
+             <camera_id1> : {
+               rectification : {
+                 K : <numpy.ndarray>,
+                 center : <2-tuple>,
+                 coefs : <numpy.ndarray>
+               },
+               coordinates : {
+                 UV : <numpy.ndarray>,
+                 XYZ : <numpy.ndarray>
+               },
+             <camera_id2> : {
+               ...
+             },
+             ...
+           }
+
+    '''
 
     rp = {}
 
@@ -35,18 +68,22 @@ def get_rectification_data(host, station):
 
             cid = cam['cameraNumber']
     
-            rp[cid] = {}
-            rp[cid]['K'] = np.asarray(cam['K']).T
-            rp[cid]['D_U0'] = cam['D_U0']
-            rp[cid]['D_V0'] = cam['D_V0']
-            rp[cid]['D1'] = cam['D1']
-            rp[cid]['D2'] = cam['D2']
-            rp[cid]['Drad'] = np.asarray(cam['Drad']).flatten()
-            rp[cid]['Dtan'] = np.asarray(cam['Dtan']).flatten()
+            rp[cid] = dict(
+                rectification = dict(
+                    K = np.asarray(cam['K']).T,
+                    center = (cam['D_U0'], cam['D_V0']),
+                    coefs = np.asarray(cam['Drad']).flatten()
+                ),
+                coordinates = dict(
+                    UV = []
+                    XYZ = []
+                )
+            )
+            
+            #rp[cid]['D1'] = cam['D1']
+            #rp[cid]['D2'] = cam['D2']
+            #rp[cid]['Dtan'] = np.asarray(cam['Dtan']).flatten()
     
-            rp[cid]['UV'] = []
-            rp[cid]['XYZ'] = []
-  
             # read geometry
             geometry = _get_data(host, 'geometry', cameraID=cam['id'])
             logger.debug(geometry)
@@ -66,14 +103,35 @@ def get_rectification_data(host, station):
 
                     if len(gcp) > 0:
                         gcp = gcp[0]
-                        rp[cid]['UV'].append((usedgcp['U'], usedgcp['V']))
-                        rp[cid]['XYZ'].append((gcp['y'], gcp['x'], gcp['z']))
+                        rp[cid]['coordinates']['UV'].append((usedgcp['U'], usedgcp['V']))
+                        rp[cid]['coordinates']['XYZ'].append((gcp['y'], gcp['x'], gcp['z']))
 
     return rp
 
 
 def get_rotation_data(host, station):
-    '''Get rotation data'''
+    '''Get rotation data for camera station
+
+    Parameters
+    ----------
+    host : str
+        Hostname of REST service
+    station : str
+        Name of camera station
+
+    Returns
+    -------
+    rp : dict
+        Dictionary with rotation data:
+
+        .. code-block:: json
+    
+           {
+             translation : <numpy.ndarray>,
+             rotation : <float>
+           }
+
+    '''
 
     rp = {}
 
@@ -156,7 +214,28 @@ def get_image_list(host, station, **kwargs):
 
 
 def _get_data(host, table, **kwargs):
-    '''Raw data read from REST API'''
+    '''Raw data read from REST service
+
+    Parameters
+    ----------
+    host : str
+        Hostname of REST service
+    table : str
+        Name of database table
+    kwargs : dict, optional
+        Name/value pairs for database table fields used as filter
+
+    Returns
+    -------
+    data : list of dict
+        Rows from database table
+
+    Examples
+    --------
+    >>> _get_data(host, 'station', shortName=station)
+        [{'shortName':<station>, ...}]
+
+    '''
     
     query = '&'.join(['='.join((k,str(v))) for k,v in kwargs.iteritems()])
     url = '%s/db/table/%s?%s' % (host, table, query)
@@ -168,19 +247,45 @@ def _get_data(host, table, **kwargs):
 
 
 def get_image(url, slice=1):
-  '''Get image data from URL'''
+    '''Get image data from URL
 
-  s = slice
-  f = cStringIO.StringIO(read_url_contents(url))
-  img = plt.imread(f, format='jpg')
+    Parameters
+    ----------
+    url : str
+        Image URL
+    slice : int, optional
+        Slice to use when returning image data
+
+    Returns
+    -------
+    img : numpy.ndarray
+        Sliced image matrix
+
+    '''
+
+    s = slice
+    f = cStringIO.StringIO(read_url_contents(url))
+    img = plt.imread(f, format='jpg')
   
-  img = img[::s,::s,:3]/255.0 # FIXME: ignore alpha
+    img = img[::s,::s,:3]/255.0 # FIXME: ignore alpha
   
-  return img
+    return img
 
 
 def read_url_contents(url):
-    '''Read entire contents of URL'''
+    '''Read entire contents of URL
+
+    Parameters
+    ----------
+    url : str
+        Url to read
+
+    Returns
+    -------
+    str
+        (Binary) string read from URL
+
+    '''
     
     try:
         return urllib2.urlopen(url).read()

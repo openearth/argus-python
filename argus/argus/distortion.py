@@ -2,6 +2,34 @@ import numpy as np
 
 
 def undistort(U, V, center=(0,0), coefs=(0,0), K=np.identity(3)):
+    '''Remove lens distortion from pixel coordinates based on coefficients in Argus database (latest version)
+
+    Parameters
+    ----------
+    U : iterable
+        Distorted horizontal pixel coordinates
+    V : iterable
+        Distorted vertical pixel coordinates
+    center : 2-tuple
+        Pixel coordinates of center pixel
+    coefs : 2-tuple
+        Radial distortion coefficients
+    K : 3x3 numpy.ndarray
+        Camera matrix
+
+    Returns
+    -------
+    U : numpy.ndaarray
+        Undistorted horizontal pixel coordinates
+    V : numpy.ndaarray
+        Undistorted vertical pixel coordinates
+
+    See Also
+    --------
+    undistort_0
+    undistort_1
+
+    '''
 
     dU = (np.asarray(U) - center[0]) / K[0,0]
     dV = (np.asarray(V) - center[1]) / K[1,1]
@@ -21,6 +49,11 @@ def undistort(U, V, center=(0,0), coefs=(0,0), K=np.identity(3)):
 
 
 def undistort_1(U, V, center=(0,0), coefs=(0,0), K=np.identity(3)):
+    '''Remove lens distortion from pixel coordinates based on coefficients in Argus database (deprecated version)
+
+    See :func:`undistort` for usage.
+
+    '''
 
     lx = 1.006
     ly = -1.
@@ -42,6 +75,11 @@ def undistort_1(U, V, center=(0,0), coefs=(0,0), K=np.identity(3)):
 
     
 def undistort_0(U, V, center=(0,0), coefs=(0,0), K=np.identity(3)):
+    '''Remove lens distortion from pixel coordinates based on coefficients in Argus database (initial version)
+
+    See :func:`undistort` for usage.
+
+    '''
 
     dU = U.astype(np.float32) - center[0]
     dV = V.astype(np.float32) - center[1]
@@ -55,12 +93,3 @@ def undistort_0(U, V, center=(0,0), coefs=(0,0), K=np.identity(3)):
     V = (dV * pr) + center[1]
     
     return U, V
-
-
-def get_distortion_data(rectification_data):
-
-    return dict(
-        center = (rectification_data['D_U0'], rectification_data['D_V0']),
-        coefs = rectification_data['Drad'],
-        K = rectification_data['K']
-    )
