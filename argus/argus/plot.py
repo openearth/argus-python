@@ -3,13 +3,17 @@
 # do not show any images
 #matplotlib.use('Agg')
 
-import matplotlib.pyplot as plt
-import io, time
+import urlparse
+import logging
 import cStringIO
 import numpy as np
 import flamingo.rectification
+import matplotlib.pyplot as plt
 
 import rest, filename, distortion
+
+
+logger = logging.getLogger(__name__)
 
 
 def plot_image(img, cmap='Set2', dpi=96, slice=0, transparent=True):
@@ -57,46 +61,60 @@ def get_image_data(fig, dpi=96, axis_only=True, transparent=True):
     return imgdata.read()
 
 
-def plot_rectified(images, figsize=(30,20), max_distance=1e4, rotate=True):
+def plot_rectified(urls, figsize=(30,20),
+                   max_distance=1e4, rotate=True, ax=None, slice=1):
 
     r1 = {}
     r2 = {}
 
-    axs = None
-    for i, image in enumerate(images):
+    for i, url in enumerate(urls):
 
-        img = rest.get_image(image)
-        info = filename.filename2fileparts(image)
+        logger.info('Retrieve image data from %s...', url)
+        img = rest.get_image(url)
+        info = filename.filename2fileparts(url)
 
+        p = urlparse.urlparse(url)
         s = info['station']
         c = int(info['camera'])
 
+        host = '%s://%s' % (p.scheme, p.netloc)
+
         if s not in r1.keys():
-            r1[s] = rest.get_rectification_data(s)
+            logger.info('Retrieve rectification data...')
+            r1[s] = rest.get_rectification_data(host, s)
 
             if rotate:
-                r2[s] = rest.get_rotation_data(s)
+                logger.info('Retrieve rotation data...')
+                r2[s] = rest.get_rotation_data(host, s)
             else:
                 r2[s] = {'rotation':None, 'translation':None}
 
         # undistort gcp's
-        UV = [undistort([u], [v], rectification_data=r1[s][c]) for u,v in r1[s][c]['UV']]
+        logger.info('Undistort GCP\'s...')
+        UV = [distortion.undistort([u], [v],
+                                   **distortion.get_distortion_data(r1[s][c]))
+              for u,v in r1[s][c]['UV']]
 
         # find homography
+        logger.info('Find homography...')
         H = flamingo.rectification.find_homography(UV, r1[s][c]['XYZ'], r1[s][c]['K'])
 
         # undistort image
+        logger.info('Undistort image...')
         u, v = flamingo.rectification.get_pixel_coordinates(img)
-        u, v = undistort(u, v, rectification_data=r1[s][c])
+        u, v = distortion.undistort(u, v, **distortion.get_distortion_data(r1[s][c]))
 
         # rectify image
+        logger.info('Rectify image...')
         x, y = flamingo.rectification.rectify_coordinates(u, v, H)
     
         # plot image
-        fig, axs = flamingo.rectification.plot.plot_rectified([-x], [y], [img], 
-                                                              figsize=figsize,
-                                                              max_distance=max_distance,
-                                                              axs=axs,
-                                                              **r2[s])
+        logger.info('Plot rectified image...')
+        fig, ax = flamingo.rectification.plot.plot_rectified([-x], [y], [img],
+                                                             slice=slice,
+                                                             figsize=figsize,
+                                                             max_distance=max_distance,
+                                                             ax=ax,
+                                                             **r2[s])
 
-    return fig, axs
+    return fig, ax
