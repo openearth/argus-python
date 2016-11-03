@@ -8,7 +8,9 @@ import logging
 
 import filename
 
+
 logger = logging.getLogger(__name__)
+
 
 def get_rectification_data(host, station):
     '''Get rectification data'''
@@ -165,16 +167,14 @@ def _get_data(host, table, **kwargs):
     return data
 
 
-def get_image(url, slice=0):
+def get_image(url, slice=1):
   '''Get image data from URL'''
-  
+
+  s = slice
   f = cStringIO.StringIO(read_url_contents(url))
   img = plt.imread(f, format='jpg')
   
-  if slice > 0:
-    img = img[::slice,::slice,:]
-    
-  img = img[:,:,:3]/255.0 # FIXME: ignore alpha
+  img = img[::s,::s,:3]/255.0 # FIXME: ignore alpha
   
   return img
 
