@@ -75,7 +75,7 @@ def get_rectification_data(host, station):
                     coefs = np.asarray(cam['Drad']).flatten()
                 ),
                 coordinates = dict(
-                    UV = []
+                    UV = [],
                     XYZ = []
                 )
             )
