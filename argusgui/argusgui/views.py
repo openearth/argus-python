@@ -17,7 +17,7 @@ queue.clean_queue()
 def gui_home(request):
     return {}
 
-@view_config(route_name='gui_classification', renderer='templates/classification.pt', permission='view')
+@view_config(route_name='gui_classification', renderer='templates/classification.pt')
 def gui_classification(request):
     return {}
 
@@ -120,7 +120,7 @@ def view_image(request):
 
     image = {}
     if not ds == None and not im == None:
-        
+
         if not force_segmentation:
             image = classification.get_segmentation_data(ds, im)
 

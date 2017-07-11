@@ -10,12 +10,20 @@ from flamingo import filesys
 def get_segmentation_data(ds, im):
     meta = read_export_file(ds, im, 'meta')
 
-    return {'segments': read_export_file(ds, im, 'segments'),
-            'contours': read_export_file(ds, im, 'contours'),
-            'nx': meta['superpixel_grid'][0],
-            'ny': meta['superpixel_grid'][1],
-            'width': meta['image_resolution_cropped'][1],
-            'height': meta['image_resolution_cropped'][0]}
+    r = {'segments': read_export_file(ds, im, 'segments'),
+         'contours': read_export_file(ds, im, 'contours'),
+         'nx': meta['superpixel_grid'][0],
+         'ny': meta['superpixel_grid'][1],
+         'width': meta['image_resolution_cropped'][1],
+         'height': meta['image_resolution_cropped'][0]}
+
+    # compute centroids
+    r['centroids'] = []
+    for i in range(r['segments'].max()+1):
+        y, x = np.where(r['segments'] == i)
+        r['centroids'].append((np.mean(x), np.mean(y)))
+    
+    return r
 
 
 def get_classification_data(ds, im):
@@ -33,31 +41,18 @@ def get_classification_data(ds, im):
         # read classification file
         assignments = read_export_file(ds, im, 'classes')
             
-        if assignments != None:
+        if assignments is not None:
             image['assignments'] = assignments
             image['classes']     = [x for x in list(set(assignments)) if not x == None]
 
-        # read model file
-        if has_features(ds, im):
-            ssvm, catlist = read_model_file(ds)
-            if not ssvm == None:
-                features = read_export_file(ds, im, 'features')
+        # read prediction file
+        prediction = read_export_file(ds, im, 'predict')
 
-                if not features == None:
-
-                    X, shp = features
-#                    X = cls.classification.get_0d_features(X)
-                    X = X.reshape((1,shp[0],shp[1],-1))
-
-                    Y = ssvm.predict(X)[0]
-
-                    Y_lbl = np.empty(Y.shape, dtype='object')
-                    for i in range(Y.max()+1):
-                        Y_lbl[Y==i] = catlist[i]
-
-                    image['prediction'] = Y_lbl.flatten().tolist()
+        if prediction is not None:
+            image['prediction'] = list(prediction.flatten())
 
         image['url'] = '%s/%s' % (ds, 'cropped_%s' % im)
+        #image['url'] = '%s/%s' % (ds, im)
 
     # read default class file
     defaults = read_default_categories(ds)
@@ -159,17 +154,17 @@ def get_image_list(ds):
     return images
 
 def get_image_path(ds):
-    return os.path.join(get_dataset_path(),ds)
+    return os.path.join(get_dataset_path(), ds)
 
 def get_dataset_path():
-    return filesys.get_dataset_path() #os.path.join(os.path.dirname(__file__),'datasets') # FIXME    
+    return filesys.get_dataset_path()
 
 def get_dataset_list():
     fpath = get_dataset_path()
 
     datasets = []
     for fname in os.listdir(fpath):
-        if not fname.startswith('.') and os.path.isdir(os.path.join(get_dataset_path(), fname)):
+        if not fname.startswith('.') and os.path.isdir(os.path.join(fpath, fname)):
             datasets.append(fname);
     return datasets
 
@@ -215,6 +210,7 @@ def read_image_file(fpath):
             plt.imsave(fpath_cropped, img)
         else:
             img = plt.imread(fpath_cropped)
+        img = plt.imread(fpath_cropped)
     return img
 
 def write_model_file(ds, ssvm, catlist):

@@ -13,6 +13,7 @@
 	},
 
         _contours: null,
+        _centroids: null,
         _classes: new Array(),
         _assignments: new Array(),
 	_prediction: new Array(),
@@ -25,6 +26,9 @@
         _classFilter: "",
         _isChanged: false,
 	_nrOfPictures: 3,
+        _keyDownShift: false,
+        _keyDownCtrl: false,
+        _keyDownAlt: false,
 
 	_objImageDisplay: null,
         _objClassSelector: null,
@@ -38,6 +42,7 @@
 	    
 	    $(window)
                 .bind("keydown", function(e) { thisObject._keydown(e); })
+                .bind("keyup", function(e) { thisObject._keyup(e); })
                 .bind("load", function() { thisObject._resize(); })
 		.bind("resize", function() { thisObject._resize(); })
                 .bind("beforeunload", function() { return thisObject._checkIfSaved(); });
@@ -75,6 +80,29 @@
 
         _keydown: function(e) {
             switch (e.keyCode) {
+            case 16:
+                this._keyDownShift = true;
+                break;
+            case 17:
+                this._keyDownCtrl = true;
+                break;
+            case 18:
+                this._keyDownAlt = true;
+                break;
+            }
+        },
+            
+        _keyup: function(e) {
+            switch (e.keyCode) {
+            case 16:
+                this._keyDownShift = false;
+                break;
+            case 17:
+                this._keyDownCtrl = false;
+                break;
+            case 18:
+                this._keyDownAlt = false;
+                break;
             case 37:
                 this._highlightAdjacentSuperpixel("left");
                 break;
@@ -91,7 +119,7 @@
                 if (this._hasNewClass() && this._getNewClass().hasClass("selected")) {
                     this._addClass();
                 }
-                this._classifyCurrentSuperpixel(this._lastClass);
+                this._classifySuperpixelsFromKeyCode();
                 break;
             case 27:
                 this._clearClass();
@@ -100,7 +128,7 @@
                 if (this._hasNewClass()) {
                     this._addClass();
                 }
-                this._classifyCurrentSuperpixel(this._lastClass);
+                this._classifySuperpixelsFromKeyCode();
                 break;
             case 8:
                 if (this._classFilter.length > 0) {
@@ -123,6 +151,18 @@
                     }
                 }
                 break;
+            }
+        },
+
+        _classifySuperpixelsFromKeyCode: function() {
+            if (this._keyDownShift) {
+                this._classifySuperpixelsNonclassified(this._lastClass);
+            } else if (this._keyDownCtrl) {
+                this._classifySuperpixelsLeft(this._lastClass);
+            } else if (this._keyDownAlt) {
+                this._classifySuperpixelsRight(this._lastClass);
+            } else {
+                this._classifyCurrentSuperpixel(this._lastClass);
             }
         },
 	
@@ -315,7 +355,7 @@
 
             if (this.options.dataset != null && this.options.image != null) {
 
-                var qs = "?keys=url,contours,width,height,nx,ny,assignments,prediction,classes";
+                var qs = "?keys=url,contours,width,height,nx,ny,assignments,prediction,classes,centroids";
                 var qs = qs + "&compactness=" + $(this._objToolbar).find("input[name='compactness']").val();
                 var qs = qs + "&n_segments=" + $(this._objToolbar).find("input[name='n_segments']").val();
                 var qs = qs + "&force_segmentation=" + force;
@@ -325,6 +365,7 @@
 
                 $.getJSON(json_url, function(data) {
                     thisObject._contours = data["contours"];
+                    thisObject._centroids = data["centroids"];
                     thisObject._width    = data["width"];
                     thisObject._height   = data["height"];
                     thisObject._nx       = data["nx"];
@@ -342,7 +383,7 @@
                     thisObject._fillClassSelector();
                     
                     var obj = $(thisObject._objImageDisplay).find("div.display-image-original svg")[0];
-                    $(obj).css("background-image","url(" + thisObject.options.imageHost + data["url"] + ")");
+                    $(obj).css("background-image","url('" + thisObject.options.imageHost + encodeURIComponent(data["url"]) + "')");
                     thisObject._drawSuperpixelRaster(obj);
                     
                     var obj = $(thisObject._objImageDisplay).find("div.display-image-classified svg")[0];
@@ -442,11 +483,13 @@
         _selectNextImage: function(n) {
             var thisObject = this;
 
-            var json_url = this.options.datasetsHost + this.options.dataset + "/";
+            var json_url = this.options.datasetHost + this.options.dataset + "/";
             $.getJSON(json_url, function(data) {
-                var idx = data.indexOf(thisObject.options.image) + n;
-                if (idx >= 0 && idx < data.length) {
-                    thisObject._setImage(data[idx]);
+                var files = data
+                    .map(function(obj){return $(obj).attr("file");})
+                var idx = files.indexOf(thisObject.options.image) + n;
+                if (idx >= 0 && idx < files.length) {
+                    thisObject._setImage(files[idx]);
                 }
             });
         },
@@ -564,32 +607,65 @@
 		.text(n + "/" + this._assignments.length);
 	},
 
+        _classifySuperpixel: function(idx, name) {
+            this._assignments[idx] = name;
+            
+            this._selectClass(name);
+            this._clearClass();
+            
+            var obj = $(this._objImageDisplay).find("div.display-image-classified svg")[0];
+
+            d3
+                .select(".argus-image-classifier .display-image-classified svg")
+                .select("#superpixel_" + idx)
+                .classed("classified",true)
+                .style("stroke",this._getClassColor(name))
+                .style("fill",this._getClassColor(name));
+
+            var obj = $(this._objImageDisplay).find("div.display-image-original svg")[0];
+            this._highlightAdjacentSuperpixel("right");
+
+            this._isChanged = true;
+        },
+
         _classifyCurrentSuperpixel: function(name) {
             var idx = this._currentSuperpixel;
             
             if (idx != null) {
-                this._assignments[idx] = name;
-            
-                this._selectClass(name);
-                this._clearClass();
-            
-                var obj = $(this._objImageDisplay).find("div.display-image-classified svg")[0];
-
-                d3
-                    .select(".argus-image-classifier .display-image-classified svg")
-                    .select("#superpixel_" + idx)
-                    .classed("classified",true)
-                    .style("fill",this._getClassColor(name));
-
-                var obj = $(this._objImageDisplay).find("div.display-image-original svg")[0];
-                this._highlightAdjacentSuperpixel("right");
-
-                this._isChanged = true;
+                this._classifySuperpixel(idx, name);
             }
 
 	    this._updateClassificationCounter();
         },
             
+        _classifySuperpixelsNonclassified: function(name) {
+            for (idx = 0; idx < this._contours.length; idx++) {
+                if (this._assignments[idx] == null) {
+                    this._classifySuperpixel(idx, name);
+                }
+            }
+
+	    this._updateClassificationCounter();
+        },
+
+        _classifySuperpixelsLeft: function(name) {
+            var idxCurrent = this._currentSuperpixel;
+            for (idx = 0; idx <= idxCurrent; idx++) {
+                this._classifySuperpixel(idx, name);
+            }
+
+	    this._updateClassificationCounter();
+        },
+
+        _classifySuperpixelsRight: function(name) {
+            var idxCurrent = this._currentSuperpixel;
+            for (idx = idxCurrent; idx < this._contours.length; idx++) {
+                this._classifySuperpixel(idx, name);
+            }
+
+	    this._updateClassificationCounter();
+        },
+        
         _drawSuperpixelRaster: function(obj) {
             var thisObject = this;
 
@@ -597,7 +673,13 @@
                 .attr("preserveAspectRatio","none")
                 .attr("viewBox","0,0," + this._width + "," + this._height);
 
-            var objs = d3.select(obj).selectAll(".superpixel")
+            d3.select(obj)
+                .selectAll(".superpixel")
+                .remove();
+            
+            var objs = d3
+                .select(obj)
+                .selectAll(".superpixel")
                 .data(this._contours, function(d) { return d; });
 
             objs
@@ -618,6 +700,9 @@
                                                   $(obj).height()/thisObject._height); })
                 .on("click", function() {
                     thisObject._highlightSuperpixel(
+                        parseInt(d3.select(this).attr("nr"))); })
+                .on("mouseover", function() {
+                    thisObject._hoverSuperpixel(
                         parseInt(d3.select(this).attr("nr"))); });
 
 	    this._updateClassificationCounter();
@@ -630,9 +715,27 @@
 		d3.select(obj).selectAll(".superpixel")
                     .classed("classified", function(d,i) {
 			return values[i] != null; })
+                    .style("stroke", function(d,i) {
+			return thisObject._getClassColor(values[i]); })
                     .style("fill", function(d,i) {
 			return thisObject._getClassColor(values[i]); });
 	    }
+        },
+
+        _hoverSuperpixel: function(idx) {
+            if (this._contours != null) {
+                if (idx >= this._contours.length) idx = idx - this._contours.length;
+                if (idx < 0) idx = idx + this._contours.length;
+                
+                d3
+                    .selectAll(".argus-image-classifier-display svg")
+                    .selectAll(".superpixel")
+                    .classed("hover",false);
+                d3
+                    .selectAll(".argus-image-classifier-display svg")
+                    .select("#superpixel_" + idx)
+                    .classed("hover",true);
+            }
         },
 
         _highlightSuperpixel: function(idx) {
@@ -885,12 +988,14 @@
                 case "objectbeach":
                 return "#aaaaaa";
                 break;
+                case "water":
                 case "watersea":
                 return "#0000ff";
                 break;
                 case "waterpool":
                 return "#000099";
                 break;
+                case "air":
                 case "sky":
                 return "#6666ff";
                 break;
@@ -903,6 +1008,9 @@
                 break;
                 case "vegetation":
                 return "#00ff00";
+                break;
+                case "wave":
+                return "#ff6666";
                 break;
                 }
 /*

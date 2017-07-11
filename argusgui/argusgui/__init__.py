@@ -11,9 +11,9 @@ def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
     config = Configurator(root_factory='argusgui.models.RootFactory',
-                          settings=settings,
-                          authentication_policy=BasicAuthenticationPolicy(mycheck), 
-                          authorization_policy=ACLAuthorizationPolicy())
+                          settings=settings)
+                          #authentication_policy=BasicAuthenticationPolicy(mycheck), 
+                          #authorization_policy=ACLAuthorizationPolicy())
 
     # renderers
     config.add_renderer('jsonp', JSONP(param_name='callback'))

@@ -8,6 +8,8 @@
 }
 
 .argus-image-classifier-toolbar {
+    height:34px;
+    overflow:hidden;
     margin:0 10px 10px 10px;
 }
 
@@ -71,7 +73,7 @@
     stroke:#aaaaaa;
 }
 
-.argus-image-classifier-display svg path.superpixel:hover {
+.argus-image-classifier-display svg path.superpixel.hover {
     fill:#ff0000 !important;
     fill-opacity:.25 !important;
     stroke-opacity:1 !important;

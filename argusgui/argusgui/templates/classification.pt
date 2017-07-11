@@ -55,7 +55,10 @@
 	</head>
 	<body>
                 <div id="argus-image-classifier"></div>
-                <div class="footer">This classification tool is brought to you by The <i>Awesome</i> <a href="http://nemo.citg.tudelft.nl/"><img src="${request.static_url('argusgui:static/nemo_footer.gif')}"></a> Project. &copy; 2013 Bas Hoonhout</div>
-
+                <div class="footer">
+                  This classification tool is brought to you by
+                  The <i>Awesome</i> <a href="http://nemo.citg.tudelft.nl/"><img src="${request.static_url('argusgui:static/nemo_footer.gif')}"></a>
+                  Project. &copy; 2013 Bas Hoonhout
+                </div>
 	</body>
 </html>
